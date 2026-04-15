@@ -1,0 +1,230 @@
+You are an expert mobile app developer. Build a complete, production-ready mobile app using **React Native with Expo**.
+
+---
+
+# 📱 App Name:
+
+3-6-9 Manifestation Companion
+
+---
+
+# 🎯 Core Goal:
+
+Create a calm, minimal mobile app that helps users complete daily affirmations using the 3-6-9 manifestation method over a 33 or 45 day cycle.
+
+---
+
+# ⚙️ Technical Requirements:
+
+* Use **Expo (React Native)**
+* Use **functional components + hooks**
+* Use **AsyncStorage** for local persistence
+* Use **Expo Notifications API** for reminders
+* Use **Expo AV** for sound playback
+* Keep dependencies minimal
+* Clean, modular file structure
+
+---
+
+# 📁 Required Screens:
+
+## 1. OnboardingScreen
+
+* Let user:
+
+  * Select cycle length (33 or 45 days)
+  * Enter main intention (optional)
+  * Set notification times:
+
+    * Morning
+    * Afternoon
+    * Evening
+* Save settings locally
+* Navigate to HomeScreen
+
+---
+
+## 2. HomeScreen
+
+* Display:
+
+  * Current day (e.g., Day 5 of 33)
+  * Progress for today:
+
+    * Morning (0/3)
+    * Afternoon (0/6)
+    * Evening (0/9)
+* Buttons for each session:
+
+  * “Start Morning”
+  * “Start Afternoon”
+  * “Start Evening”
+
+---
+
+## 3. AffirmationScreen
+
+* Dynamic based on session type:
+
+  * Morning → 3 inputs
+  * Afternoon → 6 inputs
+  * Evening → 9 inputs
+
+### Features:
+
+* Input fields with counter
+* Prevent submission until all fields are filled
+* Save affirmations to storage (by day + session)
+* On completion → navigate to ReflectionScreen
+
+---
+
+## 4. ReflectionScreen
+
+* 60-second countdown timer
+
+### UI:
+
+* Large animated circle (breathing/pulsing effect)
+* Minimal design (dark calming background)
+
+### Features:
+
+* Countdown from 60 → 0
+* Play soft chime sound at end
+* Button: “Complete Session” → return to HomeScreen
+
+---
+
+## 5. ProgressScreen
+
+* Calendar or list view of days
+* Show:
+
+  * Completed sessions per day
+* Simple and clean UI
+
+---
+
+# 🔔 Notification System:
+
+* Ask permission on first launch
+* Schedule 3 daily notifications:
+
+  * Morning
+  * Afternoon
+  * Evening
+
+### Behaviour:
+
+* Customisable times from onboarding
+* Notification text examples:
+
+  * “Time for your morning affirmations 🌅”
+  * “Pause and align this afternoon ✨”
+  * “Reflect and reset tonight 🌙”
+
+---
+
+# 💾 Data Structure (AsyncStorage):
+
+Store:
+
+* userSettings:
+
+  * cycleLength
+  * startDate
+  * notificationTimes
+  * intention
+
+* progress:
+
+  * dayNumber
+  * sessions:
+
+    * morning: [strings]
+    * afternoon: [strings]
+    * evening: [strings]
+  * completionStatus
+
+---
+
+# 🎨 Design Style:
+
+* Minimal, calming, modern
+* Soft gradients (blue/purple tones)
+* Rounded UI elements
+* Smooth transitions
+* No clutter
+
+---
+
+# 🔊 Audio:
+
+* Include a soft chime sound file
+* Play at end of reflection timer
+
+---
+
+# 🧠 Logic Rules:
+
+* Users must complete sessions in order:
+  Morning → Afternoon → Evening
+* Automatically calculate current day based on startDate
+* Prevent skipping ahead
+* Persist all progress locally
+
+---
+
+# 📦 File Structure:
+
+* /screens
+
+  * OnboardingScreen.js
+  * HomeScreen.js
+  * AffirmationScreen.js
+  * ReflectionScreen.js
+  * ProgressScreen.js
+
+* /components
+
+  * ProgressBar.js
+  * TimerCircle.js
+
+* /utils
+
+  * storage.js
+  * notifications.js
+
+---
+
+# 🚀 Deliverables:
+
+* Fully runnable Expo project
+* All screens implemented
+* Navigation working (React Navigation)
+* Notifications scheduled
+* Local storage working
+* Timer animation working
+* Clean, readable code
+
+---
+
+# ⚠️ Important Instructions:
+
+* Do NOT leave placeholders or pseudo-code
+* Write fully working code
+* Ensure app runs immediately with:
+  npm install
+  npx expo start
+
+---
+
+# ✨ Bonus (if possible):
+
+* Add light haptic feedback on completion
+* Add simple streak counter on HomeScreen
+
+---
+
+Build the full project now.
