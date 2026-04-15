@@ -13,6 +13,7 @@ import {
   UserSettings,
   archiveCurrentJourney,
   calculateStreak,
+  deleteArchivedJourney as storageDeleteArchivedJourney,
   getCurrentDay,
   loadAllProgress,
   loadArchivedJourneys,
@@ -50,6 +51,7 @@ interface AppContextType {
   addManifestItem: (text: string) => Promise<void>;
   toggleManifestItem: (id: string) => Promise<void>;
   deleteManifestItem: (id: string) => Promise<void>;
+  deleteArchivedJourney: (id: string) => Promise<void>;
   startNewJourney: (s: UserSettings) => Promise<void>;
 }
 
@@ -199,6 +201,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setManifestItems(updated);
   }, []);
 
+  const deleteArchivedJourney = useCallback(async (id: string) => {
+    await storageDeleteArchivedJourney(id);
+    const journeys = await loadArchivedJourneys();
+    setArchivedJourneys(journeys);
+  }, []);
+
   const startNewJourney = useCallback(
     async (s: UserSettings) => {
       if (settings && Object.keys(allProgress).length > 0) {
@@ -259,6 +267,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addManifestItem,
         toggleManifestItem,
         deleteManifestItem,
+        deleteArchivedJourney,
         startNewJourney,
       }}
     >

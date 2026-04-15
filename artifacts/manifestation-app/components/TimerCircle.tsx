@@ -47,41 +47,36 @@ export function TimerCircle({
   const timeDisplay = `${minutes}:${seconds.toString().padStart(2, "0")}`;
 
   return (
-    <Animated.View
-      style={[
-        { width: size, height: size, transform: [{ scale: pulseAnim }] },
-      ]}
-    >
-      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={colors.border}
-          strokeWidth={4}
-          fill="transparent"
-        />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={colors.primary}
-          strokeWidth={6}
-          fill="transparent"
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          rotation="-90"
-          origin={`${size / 2}, ${size / 2}`}
-        />
-      </Svg>
-
-      <View
-        style={[
-          styles.inner,
-          { width: size, height: size },
-        ]}
+    <View style={{ width: size, height: size }}>
+      <Animated.View
+        style={[StyleSheet.absoluteFill, { transform: [{ scale: pulseAnim }] }]}
       >
+        <Svg width={size} height={size}>
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={colors.border}
+            strokeWidth={4}
+            fill="transparent"
+          />
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={colors.primary}
+            strokeWidth={6}
+            fill="transparent"
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            rotation="-90"
+            origin={`${size / 2}, ${size / 2}`}
+          />
+        </Svg>
+      </Animated.View>
+
+      <View style={[styles.inner, { width: size, height: size }]}>
         <View
           style={[
             styles.innerCircle,
@@ -102,7 +97,7 @@ export function TimerCircle({
           </Text>
         </View>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 

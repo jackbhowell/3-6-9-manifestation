@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import {
+  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -63,6 +64,7 @@ export default function JourneysScreen() {
     todayProgress,
     allProgress,
     archivedJourneys,
+    deleteArchivedJourney,
   } = useApp();
 
   const journeyNumber = archivedJourneys.length + 1;
@@ -81,7 +83,41 @@ export default function JourneysScreen() {
     return Math.round((done / totalSessions) * 100);
   })();
 
+  const daysElapsed = (() => {
+    if (!settings) return 0;
+    const start = new Date(settings.startDate);
+    start.setHours(0, 0, 0, 0);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const diff = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return diff + 1;
+  })();
+
+  const isJourneyOver =
+    !settings ||
+    daysElapsed >= settings.cycleLength ||
+    activeCompletion === 100;
+
   const sortedArchived = [...archivedJourneys].reverse();
+
+  function confirmDelete(journey: ArchivedJourney) {
+    if (Platform.OS === "web") {
+      deleteArchivedJourney(journey.id);
+      return;
+    }
+    Alert.alert(
+      "Delete Journey",
+      `Delete "${journey.name}"? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteArchivedJourney(journey.id),
+        },
+      ]
+    );
+  }
 
   return (
     <GradientBackground>
@@ -103,12 +139,14 @@ export default function JourneysScreen() {
               Every path you've walked
             </Text>
           </View>
-          <Pressable
-            onPress={() => router.push({ pathname: "/onboarding", params: { newJourney: "true" } })}
-            style={[styles.addBtn, { backgroundColor: colors.primary }]}
-          >
-            <Feather name="plus" size={20} color={colors.primaryForeground} />
-          </Pressable>
+          {isJourneyOver && (
+            <Pressable
+              onPress={() => router.push({ pathname: "/onboarding", params: { newJourney: "true" } })}
+              style={[styles.addBtn, { backgroundColor: colors.primary }]}
+            >
+              <Feather name="plus" size={20} color={colors.primaryForeground} />
+            </Pressable>
+          )}
         </View>
 
         <View
@@ -118,7 +156,7 @@ export default function JourneysScreen() {
           ]}
         >
           <Text style={[styles.adviceText, { color: colors.mutedForeground }]}>
-            ✦ The practice is most powerful when you give one journey your full attention. Begin a new path only when you feel complete with the current one.
+            ✦ The practice is most powerful when you give one journey your full attention. Only one journey can be active at a time — a new one can begin once the current journey is complete.
           </Text>
         </View>
 
@@ -188,14 +226,8 @@ export default function JourneysScreen() {
                   year: "numeric",
                 });
                 return (
-                  <Pressable
+                  <View
                     key={journey.id}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/journey-detail",
-                        params: { journeyId: journey.id },
-                      })
-                    }
                     style={[
                       styles.archivedCard,
                       {
@@ -245,7 +277,17 @@ export default function JourneysScreen() {
                         "{journey.intention}"
                       </Text>
                     ) : null}
-                  </Pressable>
+                    <Pressable
+                      onPress={() => confirmDelete(journey)}
+                      style={[styles.deleteBtn, { borderColor: colors.border }]}
+                      hitSlop={4}
+                    >
+                      <Feather name="trash-2" size={14} color={colors.mutedForeground} />
+                      <Text style={[styles.deleteBtnText, { color: colors.mutedForeground }]}>
+                        Delete
+                      </Text>
+                    </Pressable>
+                  </View>
                 );
               })}
             </View>
@@ -449,6 +491,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     fontStyle: "italic",
+  },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginTop: 2,
+  },
+  deleteBtnText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
   },
   emptyState: {
     alignItems: "center",

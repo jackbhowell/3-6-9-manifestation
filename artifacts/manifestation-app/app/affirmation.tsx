@@ -237,26 +237,30 @@ export default function AffirmationScreen() {
             { backgroundColor: info.color + "11", borderColor: info.color + "44" },
           ]}
         >
-          <Text style={[styles.guidanceText, { color: info.color }]}>
-            {info.guidance}
-          </Text>
           <Pressable
             onPress={() => setShowExample((v) => !v)}
-            style={styles.exampleToggle}
+            style={styles.tipToggleRow}
           >
-            <Text style={[styles.exampleToggleText, { color: info.color }]}>
-              {showExample ? "Hide example" : "Show example"}
+            <Feather name="star" size={13} color={info.color} />
+            <Text style={[styles.tipToggleLabel, { color: info.color }]}>
+              Tip {"&"} Example
             </Text>
             <Feather
               name={showExample ? "chevron-up" : "chevron-down"}
               size={14}
               color={info.color}
+              style={{ marginLeft: "auto" }}
             />
           </Pressable>
           {showExample && (
-            <Text style={[styles.exampleText, { color: colors.foreground }]}>
-              "{info.example}"
-            </Text>
+            <>
+              <Text style={[styles.guidanceText, { color: info.color }]}>
+                {info.guidance}
+              </Text>
+              <Text style={[styles.exampleText, { color: info.color + "CC" }]}>
+                "{info.example}"
+              </Text>
+            </>
           )}
         </View>
 
@@ -475,23 +479,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 14,
     padding: 14,
-    gap: 8,
+    gap: 10,
+  },
+  tipToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  tipToggleLabel: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
   },
   guidanceText: {
     fontSize: 14,
     fontFamily: "Inter_400Regular",
     lineHeight: 22,
     fontStyle: "italic",
-  },
-  exampleToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    alignSelf: "flex-start",
-  },
-  exampleToggleText: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
   },
   exampleText: {
     fontSize: 14,

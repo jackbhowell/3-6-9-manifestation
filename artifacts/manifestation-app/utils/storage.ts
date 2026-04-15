@@ -190,6 +190,12 @@ export async function archiveCurrentJourney(
   return journey;
 }
 
+export async function deleteArchivedJourney(id: string): Promise<void> {
+  const existing = await loadArchivedJourneys();
+  const updated = existing.filter((j) => j.id !== id);
+  await AsyncStorage.setItem(KEYS.JOURNEYS, JSON.stringify(updated));
+}
+
 export async function resetAll(): Promise<void> {
   await AsyncStorage.multiRemove([KEYS.SETTINGS, KEYS.PROGRESS, KEYS.ONBOARDED]);
 }

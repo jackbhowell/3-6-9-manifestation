@@ -20,9 +20,11 @@ import { useColors } from "@/hooks/useColors";
 export default function ManifestScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { manifestItems, addManifestItem, toggleManifestItem, deleteManifestItem } = useApp();
+  const { manifestItems, addManifestItem, toggleManifestItem, deleteManifestItem, settings } = useApp();
   const [inputText, setInputText] = useState("");
   const [adding, setAdding] = useState(false);
+
+  const activeIntention = settings?.intention?.trim() || null;
 
   async function handleAdd() {
     const text = inputText.trim();
@@ -81,6 +83,28 @@ export default function ManifestScreen() {
             Set your intentions. Watch them arrive.
           </Text>
         </View>
+
+        {activeIntention ? (
+          <View
+            style={[
+              styles.focusCard,
+              { backgroundColor: colors.primary + "15", borderColor: colors.primary + "55" },
+            ]}
+          >
+            <View style={styles.focusHeader}>
+              <View style={[styles.focusDot, { backgroundColor: colors.primary }]} />
+              <Text style={[styles.focusLabel, { color: colors.primary }]}>
+                CURRENT FOCUS
+              </Text>
+            </View>
+            <Text style={[styles.focusText, { color: colors.foreground }]}>
+              {activeIntention}
+            </Text>
+            <Text style={[styles.focusHint, { color: colors.mutedForeground }]}>
+              Your active journey intention — write it in every session
+            </Text>
+          </View>
+        ) : null}
 
         {adding ? (
           <View
@@ -181,7 +205,7 @@ export default function ManifestScreen() {
           </View>
         )}
 
-        {manifestItems.length === 0 && !adding && (
+        {manifestItems.length === 0 && !adding && !activeIntention && (
           <View style={styles.emptyState}>
             <Text style={[styles.emptyIcon, { color: colors.primary }]}>✦</Text>
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
@@ -275,6 +299,38 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Inter_400Regular",
     fontStyle: "italic",
+  },
+  focusCard: {
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+  },
+  focusHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  focusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  focusLabel: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 2,
+  },
+  focusText: {
+    fontSize: 17,
+    fontFamily: "Inter_600SemiBold",
+    lineHeight: 26,
+  },
+  focusHint: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    fontStyle: "italic",
+    lineHeight: 18,
   },
   newBtn: {
     flexDirection: "row",
