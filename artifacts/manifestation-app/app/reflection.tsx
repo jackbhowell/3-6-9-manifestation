@@ -1,5 +1,4 @@
 import { Feather } from "@expo/vector-icons";
-import { useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -18,14 +17,56 @@ import { useColors } from "@/hooks/useColors";
 
 const TOTAL_SECONDS = 60;
 
-const chimeSource = require("@/assets/sounds/chime.wav");
+// Play three soft breath-pulse tones via Web Audio API.
+// Each pulse is a 432 Hz sine wave with a gentle attack/decay envelope.
+// Volumes: 0.35 → 0.22 → 0.12, with a 600 ms gap between pulses.
+function playThreePulses() {
+  if (typeof window === "undefined") return;
+  try {
+    const AudioContextClass =
+      (window as unknown as Record<string, unknown>).AudioContext as typeof AudioContext | undefined ??
+      (window as unknown as Record<string, unknown>).webkitAudioContext as typeof AudioContext | undefined;
+    if (!AudioContextClass) return;
+
+    const ctx = new AudioContextClass();
+
+    function pulse(startTime: number, peakGain: number) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.value = 432;
+
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.08);
+      gain.gain.setValueAtTime(peakGain, startTime + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 2.8);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 2.9);
+      osc.onended = () => {
+        gain.disconnect();
+        osc.disconnect();
+      };
+    }
+
+    const t0 = ctx.currentTime + 0.05;
+    pulse(t0, 0.35);
+    pulse(t0 + 3.2, 0.22);
+    pulse(t0 + 6.4, 0.12);
+
+    setTimeout(() => ctx.close(), 10000);
+  } catch {
+  }
+}
 
 export default function ReflectionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { session } = useLocalSearchParams<{ session: string }>();
-
-  const player = useAudioPlayer(chimeSource);
 
   const [timeLeft, setTimeLeft] = useState(TOTAL_SECONDS);
   const [isComplete, setIsComplete] = useState(false);
@@ -34,18 +75,14 @@ export default function ReflectionScreen() {
 
   const handleComplete = useCallback(async () => {
     setIsComplete(true);
-    try {
-      player.seekTo(0);
-      player.play();
-    } catch {
-    }
+    playThreePulses();
     if (Platform.OS !== "web") {
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {
       }
     }
-  }, [player]);
+  }, []);
 
   useEffect(() => {
     if (!started) return;
