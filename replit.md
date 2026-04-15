@@ -26,21 +26,30 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 #### Features
 - Onboarding with cycle length selection (33 or 45 days), personal intention setting, and notification time setup
-- Home screen with day counter, session progress, streak counter
-- Affirmation screens with 3/6/9 dynamic input fields (enforced completion order)
-- Reflection screen with 60-second animated pulsing timer
-- Progress screen showing full cycle completion history
-- Daily push notifications via expo-notifications
-- Local persistence via AsyncStorage
+- Today screen with editable journey name (tap to rename), session countdown timers, streak counter
+- Affirmation screens with 3/6/9 dynamic input fields (enforced completion order, route-level guards)
+- Reflection screen with 60-second animated pulsing timer and 528Hz chime
+- Manifest tab: personal list of things to call in, checkable as received
+- Journeys tab: list of active and archived journeys with progress stats; tapping opens journey detail
+- Learn tab: calm/cosmic accordion explainer of the 3-6-9 method and Tesla's numbers
+- Settings tab: edit notification times, toggle notifications, start a new journey
+- Daily push notifications via expo-notifications (with HH:MM validation)
+- Local persistence via AsyncStorage (settings, progress, manifest items, archived journeys)
 - Haptic feedback on session completion
 - Deep indigo/violet gradient design
+- Bottom nav: Manifest | Journeys | Learn | Settings (Home tab hidden — Today accessible via Journeys)
 
 #### Screens
 - `app/onboarding.tsx` — 4-step onboarding flow
-- `app/(tabs)/index.tsx` — Home dashboard
+- `app/(tabs)/index.tsx` — Today/practice dashboard (hidden from tab bar)
+- `app/(tabs)/manifest.tsx` — Manifest wishlist
+- `app/(tabs)/journeys.tsx` — Journeys list
+- `app/(tabs)/learn.tsx` — 3-6-9 explainer
+- `app/(tabs)/settings.tsx` — Settings and notification controls
 - `app/affirmation.tsx` — Session affirmation entry
 - `app/reflection.tsx` — 60-second breathing timer
-- `app/progress.tsx` — Full cycle progress view
+- `app/journey-detail.tsx` — Day-by-day view of an archived journey
+- `app/progress.tsx` — Full cycle progress (legacy, accessible from home)
 
 #### Key Utilities
 - `utils/storage.ts` — AsyncStorage CRUD for settings and progress

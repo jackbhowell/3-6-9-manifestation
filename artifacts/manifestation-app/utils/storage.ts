@@ -4,11 +4,13 @@ export interface UserSettings {
   cycleLength: 33 | 45;
   startDate: string;
   intention: string;
+  journeyName?: string;
   notificationTimes: {
     morning: string;
     afternoon: string;
     evening: string;
   };
+  notificationsEnabled?: boolean;
 }
 
 export interface SessionData {
@@ -27,10 +29,30 @@ export interface DayProgress {
   };
 }
 
+export interface ManifestItem {
+  id: string;
+  text: string;
+  manifested: boolean;
+  createdAt: string;
+  manifestedAt?: string;
+}
+
+export interface ArchivedJourney {
+  id: string;
+  name: string;
+  cycleLength: 33 | 45;
+  startDate: string;
+  endDate: string;
+  intention: string;
+  progress: Record<number, DayProgress>;
+}
+
 const KEYS = {
   SETTINGS: "@manifestation/settings",
   PROGRESS: "@manifestation/progress",
   ONBOARDED: "@manifestation/onboarded",
+  MANIFEST: "@manifestation/manifest",
+  JOURNEYS: "@manifestation/journeys",
 };
 
 export async function saveSettings(settings: UserSettings): Promise<void> {
@@ -130,6 +152,42 @@ export async function calculateStreak(
     }
   }
   return streak;
+}
+
+export async function loadManifestItems(): Promise<ManifestItem[]> {
+  const raw = await AsyncStorage.getItem(KEYS.MANIFEST);
+  if (!raw) return [];
+  return JSON.parse(raw) as ManifestItem[];
+}
+
+export async function saveManifestItems(items: ManifestItem[]): Promise<void> {
+  await AsyncStorage.setItem(KEYS.MANIFEST, JSON.stringify(items));
+}
+
+export async function loadArchivedJourneys(): Promise<ArchivedJourney[]> {
+  const raw = await AsyncStorage.getItem(KEYS.JOURNEYS);
+  if (!raw) return [];
+  return JSON.parse(raw) as ArchivedJourney[];
+}
+
+export async function archiveCurrentJourney(
+  settings: UserSettings,
+  progress: Record<number, DayProgress>
+): Promise<ArchivedJourney> {
+  const existing = await loadArchivedJourneys();
+  const journeyCount = existing.length + 1;
+  const journey: ArchivedJourney = {
+    id: `journey-${Date.now()}`,
+    name: settings.journeyName || `Journey ${journeyCount}`,
+    cycleLength: settings.cycleLength,
+    startDate: settings.startDate,
+    endDate: new Date().toISOString(),
+    intention: settings.intention,
+    progress,
+  };
+  existing.push(journey);
+  await AsyncStorage.setItem(KEYS.JOURNEYS, JSON.stringify(existing));
+  return journey;
 }
 
 export async function resetAll(): Promise<void> {

@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,20 +26,82 @@ interface SessionConfig {
   label: string;
   count: number;
   icon: FeatherIconName;
-  time: string;
+  timeKey: "morning" | "afternoon" | "evening";
 }
 
 const SESSION_CONFIG: SessionConfig[] = [
-  { key: "morning", label: "Morning", count: 3, icon: "sunrise", time: "3 affirmations" },
-  { key: "afternoon", label: "Afternoon", count: 6, icon: "sun", time: "6 affirmations" },
-  { key: "evening", label: "Evening", count: 9, icon: "moon", time: "9 affirmations" },
+  { key: "morning", label: "Morning", count: 3, icon: "sunrise", timeKey: "morning" },
+  { key: "afternoon", label: "Afternoon", count: 6, icon: "sun", timeKey: "afternoon" },
+  { key: "evening", label: "Evening", count: 9, icon: "moon", timeKey: "evening" },
 ];
+
+function secondsUntilTime(timeStr: string): number {
+  const parts = timeStr.split(":");
+  const h = parseInt(parts[0] ?? "0", 10);
+  const m = parseInt(parts[1] ?? "0", 10);
+  const now = new Date();
+  const target = new Date();
+  target.setHours(h, m, 0, 0);
+  if (target <= now) {
+    target.setDate(target.getDate() + 1);
+  }
+  return Math.max(0, Math.floor((target.getTime() - now.getTime()) / 1000));
+}
+
+function formatCountdown(secs: number): string {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  if (h > 0) return `In ${h}h ${m}m`;
+  if (m > 0) return `In ${m}m`;
+  return "Now";
+}
+
+function useSessionCountdowns(
+  notificationTimes: { morning: string; afternoon: string; evening: string } | null
+): Record<Session, string> {
+  const [countdowns, setCountdowns] = useState<Record<Session, string>>({
+    morning: "",
+    afternoon: "",
+    evening: "",
+  });
+
+  useEffect(() => {
+    if (!notificationTimes) return;
+    function compute() {
+      if (!notificationTimes) return;
+      setCountdowns({
+        morning: formatCountdown(secondsUntilTime(notificationTimes.morning)),
+        afternoon: formatCountdown(secondsUntilTime(notificationTimes.afternoon)),
+        evening: formatCountdown(secondsUntilTime(notificationTimes.evening)),
+      });
+    }
+    compute();
+    const id = setInterval(compute, 60000);
+    return () => clearInterval(id);
+  }, [notificationTimes]);
+
+  return countdowns;
+}
 
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { settings, currentDay, todayProgress, streak, isLoading, refreshProgress } =
-    useApp();
+  const {
+    settings,
+    currentDay,
+    todayProgress,
+    streak,
+    isLoading,
+    refreshProgress,
+    updateJourneyName,
+    archivedJourneys,
+  } = useApp();
+
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const nameRef = useRef<TextInput>(null);
+
+  const countdowns = useSessionCountdowns(settings?.notificationTimes ?? null);
 
   useEffect(() => {
     async function checkOnboarding() {
@@ -62,6 +125,23 @@ export default function HomeScreen() {
         </View>
       </GradientBackground>
     );
+  }
+
+  const journeyNumber = archivedJourneys.length + 1;
+  const journeyName = settings.journeyName || `Journey ${journeyNumber}`;
+
+  function startEditName() {
+    setNameInput(journeyName);
+    setEditingName(true);
+    setTimeout(() => nameRef.current?.focus(), 100);
+  }
+
+  async function saveName() {
+    const trimmed = nameInput.trim();
+    if (trimmed) {
+      await updateJourneyName(trimmed);
+    }
+    setEditingName(false);
   }
 
   function getNextAvailableSession(): Session | null {
@@ -106,27 +186,44 @@ export default function HomeScreen() {
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: insets.top + (Platform.OS === "web" ? 67 : 20),
-            paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 100),
+            paddingTop: insets.top + (Platform.OS === "web" ? 20 : 20),
+            paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 20),
           },
         ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View>
+          <View style={styles.nameRow}>
             <Text style={[styles.dayLabel, { color: colors.mutedForeground }]}>
               DAY {currentDay} OF {settings.cycleLength}
             </Text>
-            <Text style={[styles.greeting, { color: colors.foreground }]}>
-              {allDone ? "Day Complete" : "Your Practice"}
-            </Text>
+            {editingName ? (
+              <View style={styles.nameEditRow}>
+                <TextInput
+                  ref={nameRef}
+                  value={nameInput}
+                  onChangeText={setNameInput}
+                  style={[styles.nameInput, { color: colors.foreground, borderColor: colors.primary }]}
+                  returnKeyType="done"
+                  onSubmitEditing={saveName}
+                  onBlur={saveName}
+                  maxLength={40}
+                />
+                <Pressable onPress={saveName} style={styles.nameEditBtn}>
+                  <Feather name="check" size={18} color={colors.primary} />
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable onPress={startEditName} style={styles.namePressable}>
+                <Text style={[styles.greeting, { color: colors.foreground }]}>
+                  {allDone ? "Day Complete" : journeyName}
+                </Text>
+                {!allDone && (
+                  <Feather name="edit-2" size={14} color={colors.mutedForeground} style={styles.editIcon} />
+                )}
+              </Pressable>
+            )}
           </View>
-          <Pressable
-            onPress={() => router.push("/progress")}
-            style={[styles.progressBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-          >
-            <Feather name="bar-chart-2" size={20} color={colors.primary} />
-          </Pressable>
         </View>
 
         {settings.intention ? (
@@ -142,28 +239,18 @@ export default function HomeScreen() {
 
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.statValue, { color: colors.primary }]}>
-              {streak}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
-              Day streak
-            </Text>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{streak}</Text>
+            <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>Day streak</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.statValue, { color: colors.primary }]}>
-              {Math.round(progressPct)}%
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
-              Today
-            </Text>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{Math.round(progressPct)}%</Text>
+            <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>Today</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.statValue, { color: colors.primary }]}>
               {settings.cycleLength - currentDay}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
-              Days left
-            </Text>
+            <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>Days left</Text>
           </View>
         </View>
 
@@ -171,10 +258,11 @@ export default function HomeScreen() {
           <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
             TODAY'S SESSIONS
           </Text>
-          {SESSION_CONFIG.map((sess, idx) => {
+          {SESSION_CONFIG.map((sess) => {
             const complete = isSessionComplete(sess.key);
             const canStart = canStartSession(sess.key);
             const locked = !complete && !canStart;
+            const countdown = countdowns[sess.key];
 
             return (
               <Pressable
@@ -184,9 +272,7 @@ export default function HomeScreen() {
                 style={[
                   styles.sessionCard,
                   {
-                    backgroundColor: complete
-                      ? colors.secondary
-                      : colors.card,
+                    backgroundColor: complete ? colors.secondary : colors.card,
                     borderColor: complete
                       ? colors.primary
                       : canStart
@@ -199,11 +285,7 @@ export default function HomeScreen() {
                 <View
                   style={[
                     styles.sessionIcon,
-                    {
-                      backgroundColor: complete
-                        ? colors.accent
-                        : colors.secondary,
-                    },
+                    { backgroundColor: complete ? colors.accent : colors.secondary },
                   ]}
                 >
                   <Feather
@@ -217,23 +299,19 @@ export default function HomeScreen() {
                     {sess.label}
                   </Text>
                   <Text style={[styles.sessionSub, { color: colors.mutedForeground }]}>
-                    {complete ? "Completed" : sess.time}
+                    {complete
+                      ? "Completed"
+                      : canStart
+                      ? `${sess.count} affirmations — ${countdown}`
+                      : `${sess.count} affirmations · ${countdown}`}
                   </Text>
                 </View>
                 {!complete && (
                   <View>
                     {canStart ? (
-                      <Feather
-                        name="arrow-right"
-                        size={20}
-                        color={colors.primary}
-                      />
+                      <Feather name="arrow-right" size={20} color={colors.primary} />
                     ) : (
-                      <Feather
-                        name="lock"
-                        size={18}
-                        color={colors.mutedForeground}
-                      />
+                      <Feather name="lock" size={18} color={colors.mutedForeground} />
                     )}
                   </View>
                 )}
@@ -276,27 +354,42 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    gap: 4,
+  },
+  nameRow: {
+    gap: 4,
   },
   dayLabel: {
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
     letterSpacing: 2,
-    marginBottom: 4,
+  },
+  namePressable: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   greeting: {
     fontSize: 28,
     fontFamily: "Inter_700Bold",
   },
-  progressBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
+  editIcon: {
+    marginTop: 4,
+  },
+  nameEditRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 8,
+  },
+  nameInput: {
+    flex: 1,
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    borderBottomWidth: 1.5,
+    paddingBottom: 2,
+  },
+  nameEditBtn: {
+    padding: 4,
   },
   intentionCard: {
     borderWidth: 1,

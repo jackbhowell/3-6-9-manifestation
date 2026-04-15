@@ -1,26 +1,18 @@
 import { BlurView } from "expo-blur";
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
-import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 
-function NativeTabLayout() {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "house", selected: "house.fill" }} />
-        <Label>Home</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
+type FeatherIconName = React.ComponentProps<typeof Feather>["name"];
+
+function TabIcon({ name, color }: { name: FeatherIconName; color: string }) {
+  return <Feather name={name} size={22} color={color} />;
 }
 
-function ClassicTabLayout() {
+export default function TabLayout() {
   const colors = useColors();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -40,6 +32,11 @@ function ClassicTabLayout() {
           borderTopColor: colors.border,
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontFamily: "Inter_400Regular",
+          marginBottom: isWeb ? 0 : 2,
         },
         tabBarBackground: () =>
           isIOS ? (
@@ -61,22 +58,37 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="house" tintColor={color} size={24} />
-            ) : (
-              <Feather name="home" size={22} color={color} />
-            ),
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="manifest"
+        options={{
+          title: "Manifest",
+          tabBarIcon: ({ color }) => <TabIcon name="star" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="journeys"
+        options={{
+          title: "Journeys",
+          tabBarIcon: ({ color }) => <TabIcon name="compass" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="learn"
+        options={{
+          title: "Learn",
+          tabBarIcon: ({ color }) => <TabIcon name="book-open" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          tabBarIcon: ({ color }) => <TabIcon name="sliders" color={color} />,
         }}
       />
     </Tabs>
   );
-}
-
-export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
-  return <ClassicTabLayout />;
 }

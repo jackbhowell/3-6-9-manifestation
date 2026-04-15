@@ -7,18 +7,25 @@ import React, {
 } from "react";
 
 import {
+  ArchivedJourney,
   DayProgress,
+  ManifestItem,
   UserSettings,
+  archiveCurrentJourney,
   calculateStreak,
   getCurrentDay,
   loadAllProgress,
+  loadArchivedJourneys,
   loadDayProgress,
+  loadManifestItems,
   loadSettings,
+  saveManifestItems,
   saveSession,
   saveSettings,
   setOnboarded,
 } from "@/utils/storage";
 import {
+  cancelAllNotifications,
   requestNotificationPermission,
   scheduleNotifications,
 } from "@/utils/notifications";
@@ -30,12 +37,20 @@ interface AppContextType {
   allProgress: Record<number, DayProgress>;
   streak: number;
   isLoading: boolean;
+  manifestItems: ManifestItem[];
+  archivedJourneys: ArchivedJourney[];
   completeOnboarding: (s: UserSettings) => Promise<void>;
   saveAffirmations: (
     session: "morning" | "afternoon" | "evening",
     affirmations: string[]
   ) => Promise<void>;
   refreshProgress: () => Promise<void>;
+  updateJourneyName: (name: string) => Promise<void>;
+  updateSettings: (updated: UserSettings) => Promise<void>;
+  addManifestItem: (text: string) => Promise<void>;
+  toggleManifestItem: (id: string) => Promise<void>;
+  deleteManifestItem: (id: string) => Promise<void>;
+  startNewJourney: (s: UserSettings) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -47,6 +62,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [allProgress, setAllProgress] = useState<Record<number, DayProgress>>({});
   const [streak, setStreak] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [manifestItems, setManifestItems] = useState<ManifestItem[]>([]);
+  const [archivedJourneys, setArchivedJourneys] = useState<ArchivedJourney[]>([]);
 
   const refreshProgress = useCallback(async () => {
     const s = await loadSettings();
@@ -63,6 +80,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTodayProgress(today);
     const streakCount = await calculateStreak(all, day);
     setStreak(streakCount);
+    const items = await loadManifestItems();
+    setManifestItems(items);
+    const journeys = await loadArchivedJourneys();
+    setArchivedJourneys(journeys);
     setIsLoading(false);
   }, []);
 
@@ -74,7 +95,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await saveSettings(s);
     await setOnboarded();
     const granted = await requestNotificationPermission();
-    if (granted) {
+    if (granted && s.notificationsEnabled !== false) {
       await scheduleNotifications(s.notificationTimes);
     }
     setSettings(s);
@@ -84,6 +105,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTodayProgress(today);
     setAllProgress({});
     setStreak(0);
+    const journeys = await loadArchivedJourneys();
+    setArchivedJourneys(journeys);
     setIsLoading(false);
   }, []);
 
@@ -99,6 +122,92 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [settings, currentDay, refreshProgress]
   );
 
+  const updateJourneyName = useCallback(
+    async (name: string) => {
+      if (!settings) return;
+      const updated = { ...settings, journeyName: name };
+      await saveSettings(updated);
+      setSettings(updated);
+    },
+    [settings]
+  );
+
+  const updateSettings = useCallback(
+    async (updated: UserSettings) => {
+      await saveSettings(updated);
+      setSettings(updated);
+      if (updated.notificationsEnabled === false) {
+        await cancelAllNotifications();
+      } else {
+        const granted = await requestNotificationPermission();
+        if (granted) {
+          await scheduleNotifications(updated.notificationTimes);
+        }
+      }
+    },
+    []
+  );
+
+  const addManifestItem = useCallback(async (text: string) => {
+    const items = await loadManifestItems();
+    const newItem: ManifestItem = {
+      id: `manifest-${Date.now()}`,
+      text,
+      manifested: false,
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [...items, newItem];
+    await saveManifestItems(updated);
+    setManifestItems(updated);
+  }, []);
+
+  const toggleManifestItem = useCallback(async (id: string) => {
+    const items = await loadManifestItems();
+    const updated = items.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            manifested: !item.manifested,
+            manifestedAt: !item.manifested ? new Date().toISOString() : undefined,
+          }
+        : item
+    );
+    await saveManifestItems(updated);
+    setManifestItems(updated);
+  }, []);
+
+  const deleteManifestItem = useCallback(async (id: string) => {
+    const items = await loadManifestItems();
+    const updated = items.filter((item) => item.id !== id);
+    await saveManifestItems(updated);
+    setManifestItems(updated);
+  }, []);
+
+  const startNewJourney = useCallback(
+    async (s: UserSettings) => {
+      if (settings && Object.keys(allProgress).length > 0) {
+        await archiveCurrentJourney(settings, allProgress);
+      }
+      await saveSettings(s);
+      await setOnboarded();
+      const granted = await requestNotificationPermission();
+      if (granted && s.notificationsEnabled !== false) {
+        await scheduleNotifications(s.notificationTimes);
+      }
+      setSettings(s);
+      const day = getCurrentDay(s.startDate, s.cycleLength);
+      setCurrentDay(day);
+      const today = await loadDayProgress(day);
+      setTodayProgress(today);
+      setAllProgress({});
+      setStreak(0);
+      const journeys = await loadArchivedJourneys();
+      setArchivedJourneys(journeys);
+      setIsLoading(false);
+    },
+    [settings, allProgress]
+  );
+
   return (
     <AppContext.Provider
       value={{
@@ -108,9 +217,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         allProgress,
         streak,
         isLoading,
+        manifestItems,
+        archivedJourneys,
         completeOnboarding,
         saveAffirmations,
         refreshProgress,
+        updateJourneyName,
+        updateSettings,
+        addManifestItem,
+        toggleManifestItem,
+        deleteManifestItem,
+        startNewJourney,
       }}
     >
       {children}
