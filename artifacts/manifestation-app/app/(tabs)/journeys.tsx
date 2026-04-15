@@ -65,6 +65,7 @@ export default function JourneysScreen() {
     allProgress,
     archivedJourneys,
     deleteArchivedJourney,
+    deleteCurrentJourney,
   } = useApp();
 
   const journeyNumber = archivedJourneys.length + 1;
@@ -114,6 +115,26 @@ export default function JourneysScreen() {
           text: "Delete",
           style: "destructive",
           onPress: () => deleteArchivedJourney(journey.id),
+        },
+      ]
+    );
+  }
+
+  function confirmDeleteCurrent() {
+    const name = journeyName;
+    if (Platform.OS === "web") {
+      deleteCurrentJourney();
+      return;
+    }
+    Alert.alert(
+      "Delete Current Journey",
+      `Delete "${name}" and all its progress? Your manifest list and past journeys will be kept. This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteCurrentJourney(),
         },
       ]
     );
@@ -199,6 +220,15 @@ export default function JourneysScreen() {
                 <StatChip label="Today" value={`${todayPct}%`} colors={colors} />
                 <StatChip label="Overall" value={`${activeCompletion}%`} colors={colors} />
               </View>
+            </Pressable>
+            <Pressable
+              onPress={confirmDeleteCurrent}
+              style={[styles.deleteCurrentBtn, { borderColor: colors.border }]}
+            >
+              <Feather name="trash-2" size={13} color={colors.mutedForeground} />
+              <Text style={[styles.deleteCurrentText, { color: colors.mutedForeground }]}>
+                Delete this journey
+              </Text>
             </Pressable>
           </>
         )}
@@ -430,6 +460,21 @@ const styles = StyleSheet.create({
   },
   chipLabel: {
     fontSize: 11,
+    fontFamily: "Inter_400Regular",
+  },
+  deleteCurrentBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginTop: -4,
+  },
+  deleteCurrentText: {
+    fontSize: 12,
     fontFamily: "Inter_400Regular",
   },
   archivedList: {

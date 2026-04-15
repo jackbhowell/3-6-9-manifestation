@@ -59,7 +59,9 @@ export default function ManifestScreen() {
     ]);
   }
 
-  const pending = manifestItems.filter((i) => !i.manifested);
+  const pending = manifestItems.filter(
+    (i) => !i.manifested && i.text.trim() !== (activeIntention ?? "")
+  );
   const manifested = manifestItems.filter((i) => i.manifested);
 
   return (

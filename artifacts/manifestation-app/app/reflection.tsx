@@ -130,7 +130,7 @@ export default function ReflectionScreen() {
           {started && !isComplete && (
             <View style={styles.timerHint}>
               <Text style={[styles.hintText, { color: colors.mutedForeground }]}>
-                Sit quietly until the timer ends
+                Sit quietly, hold your intention in mind, and feel it as already real
               </Text>
             </View>
           )}

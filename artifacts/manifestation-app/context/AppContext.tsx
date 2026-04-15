@@ -14,6 +14,7 @@ import {
   archiveCurrentJourney,
   calculateStreak,
   deleteArchivedJourney as storageDeleteArchivedJourney,
+  deleteCurrentJourney as storageDeleteCurrentJourney,
   getCurrentDay,
   loadAllProgress,
   loadArchivedJourneys,
@@ -52,6 +53,7 @@ interface AppContextType {
   toggleManifestItem: (id: string) => Promise<void>;
   deleteManifestItem: (id: string) => Promise<void>;
   deleteArchivedJourney: (id: string) => Promise<void>;
+  deleteCurrentJourney: () => Promise<void>;
   startNewJourney: (s: UserSettings) => Promise<void>;
 }
 
@@ -82,7 +84,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTodayProgress(today);
     const streakCount = await calculateStreak(all, day);
     setStreak(streakCount);
-    const items = await loadManifestItems();
+    let items = await loadManifestItems();
+
+    // Auto-manifest the intention item when journey is complete
+    if (s.intention?.trim()) {
+      const start = new Date(s.startDate);
+      start.setHours(0, 0, 0, 0);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const daysElapsed = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const totalSessions = s.cycleLength * 3;
+      let completedSessions = 0;
+      for (const dp of Object.values(all)) {
+        if (dp.completionStatus.morning) completedSessions++;
+        if (dp.completionStatus.afternoon) completedSessions++;
+        if (dp.completionStatus.evening) completedSessions++;
+      }
+      const isOver = daysElapsed >= s.cycleLength || completedSessions >= totalSessions;
+      if (isOver) {
+        const intentionText = s.intention.trim();
+        const match = items.find((i) => i.text.trim() === intentionText && !i.manifested);
+        if (match) {
+          items = items.map((i) =>
+            i.id === match.id
+              ? { ...i, manifested: true, manifestedAt: new Date().toISOString() }
+              : i
+          );
+          await saveManifestItems(items);
+        }
+      }
+    }
+
     setManifestItems(items);
     const journeys = await loadArchivedJourneys();
     setArchivedJourneys(journeys);
@@ -207,6 +239,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setArchivedJourneys(journeys);
   }, []);
 
+  const deleteCurrentJourney = useCallback(async () => {
+    await storageDeleteCurrentJourney();
+    setSettings(null);
+    setCurrentDay(1);
+    setTodayProgress(null);
+    setAllProgress({});
+    setStreak(0);
+    setIsLoading(false);
+  }, []);
+
   const startNewJourney = useCallback(
     async (s: UserSettings) => {
       if (settings && Object.keys(allProgress).length > 0) {
@@ -268,6 +310,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleManifestItem,
         deleteManifestItem,
         deleteArchivedJourney,
+        deleteCurrentJourney,
         startNewJourney,
       }}
     >
