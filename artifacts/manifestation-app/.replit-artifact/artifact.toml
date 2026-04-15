@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "3-6-9 Manifestation Companion"
+version = "1.0.0"
+id = "artifacts/manifestation-app"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 23776
+
+[services.development]
+run = "pnpm --filter @workspace/manifestation-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/manifestation-app", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/manifestation-app", "run", "serve" ]
+
+[services.env]
+PORT = "23776"
+BASE_PATH = "/"
