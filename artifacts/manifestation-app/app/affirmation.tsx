@@ -43,7 +43,7 @@ const SESSION_INFO: Record<Session, SessionInfo> = {
       "Keep it present tense and open. Begin with gratitude. \"I am grateful for and open to...\"",
     example:
       "I am grateful for and open to a life of deep peace, creative freedom and boundless joy.",
-    placeholder: "I am grateful for and open to...",
+    placeholder: "Affirmation...",
     color: "#F9C74F",
   },
   afternoon: {
@@ -56,7 +56,7 @@ const SESSION_INFO: Record<Session, SessionInfo> = {
       "Add more texture and feeling. Begin with gratitude. \"I am grateful for and attracting...\"",
     example:
       "I am grateful for and attracting a clear, undeniable experience of abundance that I can feel, see and share.",
-    placeholder: "I am grateful for and attracting...",
+    placeholder: "Affirmation...",
     color: "#A78BFA",
   },
   evening: {
@@ -69,7 +69,7 @@ const SESSION_INFO: Record<Session, SessionInfo> = {
       "Write in the present tense as though it is already so. \"I am so grateful that I am now...\"",
     example:
       "I am so grateful that I am now experiencing a life of profound purpose, ease and connection to the universe.",
-    placeholder: "I am so grateful that I am now...",
+    placeholder: "Affirmation...",
     color: "#7B61FF",
   },
 };
@@ -94,25 +94,29 @@ export default function AffirmationScreen() {
   const info = SESSION_INFO[sessionKey];
   const isViewOnly = viewOnly === "true";
 
+  // Guard fires only once — when todayProgress first loads.
+  // Keeping it from re-firing prevents a midnight edge case where todayProgress
+  // refreshes to the new day after saving, which would incorrectly redirect.
+  const guardChecked = useRef(false);
   useEffect(() => {
-    if (!isViewOnly) {
-      if (!isValidSession(session)) {
-        router.replace("/(tabs)");
-        return;
-      }
-      const status = todayProgress?.completionStatus;
-      if (!status) return;
-      if (status[sessionKey]) {
-        router.replace("/(tabs)");
-        return;
-      }
-      if (sessionKey === "afternoon" && !status.morning) {
-        router.replace("/(tabs)");
-        return;
-      }
-      if (sessionKey === "evening" && (!status.morning || !status.afternoon)) {
-        router.replace("/(tabs)");
-      }
+    if (isViewOnly || guardChecked.current) return;
+    if (!isValidSession(session)) {
+      router.replace("/(tabs)");
+      return;
+    }
+    const status = todayProgress?.completionStatus;
+    if (!status) return; // not loaded yet — wait for next update
+    guardChecked.current = true;
+    if (status[sessionKey]) {
+      router.replace("/(tabs)");
+      return;
+    }
+    if (sessionKey === "afternoon" && !status.morning) {
+      router.replace("/(tabs)");
+      return;
+    }
+    if (sessionKey === "evening" && (!status.morning || !status.afternoon)) {
+      router.replace("/(tabs)");
     }
   }, [session, sessionKey, todayProgress, isViewOnly]);
 
