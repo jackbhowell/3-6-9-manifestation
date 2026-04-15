@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { KeyboardAwareScrollViewCompat } from "react-native-keyboard-controller";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GradientBackground } from "@/components/GradientBackground";

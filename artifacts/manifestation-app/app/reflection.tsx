@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -17,13 +18,14 @@ import { useColors } from "@/hooks/useColors";
 
 const TOTAL_SECONDS = 60;
 
-async function playChime() {
-}
+const chimeSource = require("@/assets/sounds/chime.wav");
 
 export default function ReflectionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { session } = useLocalSearchParams<{ session: string }>();
+
+  const player = useAudioPlayer(chimeSource);
 
   const [timeLeft, setTimeLeft] = useState(TOTAL_SECONDS);
   const [isComplete, setIsComplete] = useState(false);
@@ -32,11 +34,18 @@ export default function ReflectionScreen() {
 
   const handleComplete = useCallback(async () => {
     setIsComplete(true);
-    if (Platform.OS !== "web") {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try {
+      player.seekTo(0);
+      player.play();
+    } catch {
     }
-    await playChime();
-  }, []);
+    if (Platform.OS !== "web") {
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {
+      }
+    }
+  }, [player]);
 
   useEffect(() => {
     if (!started) return;

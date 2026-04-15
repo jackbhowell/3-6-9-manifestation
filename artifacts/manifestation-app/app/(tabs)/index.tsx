@@ -18,12 +18,13 @@ import { useColors } from "@/hooks/useColors";
 import { isOnboarded } from "@/utils/storage";
 
 type Session = "morning" | "afternoon" | "evening";
+type FeatherIconName = React.ComponentProps<typeof Feather>["name"];
 
 interface SessionConfig {
   key: Session;
   label: string;
   count: number;
-  icon: string;
+  icon: FeatherIconName;
   time: string;
 }
 
@@ -206,7 +207,7 @@ export default function HomeScreen() {
                   ]}
                 >
                   <Feather
-                    name={complete ? "check" : (sess.icon as any)}
+                    name={complete ? "check" : sess.icon}
                     size={20}
                     color={complete ? colors.foreground : colors.primary}
                   />
