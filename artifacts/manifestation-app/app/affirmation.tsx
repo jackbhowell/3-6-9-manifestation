@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -45,14 +45,40 @@ const SESSION_INFO: Record<
   },
 };
 
+const VALID_SESSIONS = new Set<Session>(["morning", "afternoon", "evening"]);
+
+function isValidSession(s: string | undefined): s is Session {
+  return typeof s === "string" && VALID_SESSIONS.has(s as Session);
+}
+
 export default function AffirmationScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { session } = useLocalSearchParams<{ session: string }>();
-  const { saveAffirmations, settings } = useApp();
+  const { saveAffirmations, settings, todayProgress } = useApp();
 
-  const sessionKey = (session as Session) ?? "morning";
+  const sessionKey: Session = isValidSession(session) ? session : "morning";
   const info = SESSION_INFO[sessionKey];
+
+  useEffect(() => {
+    if (!isValidSession(session)) {
+      router.replace("/(tabs)");
+      return;
+    }
+    const status = todayProgress?.completionStatus;
+    if (!status) return;
+    if (status[sessionKey]) {
+      router.replace("/(tabs)");
+      return;
+    }
+    if (sessionKey === "afternoon" && !status.morning) {
+      router.replace("/(tabs)");
+      return;
+    }
+    if (sessionKey === "evening" && (!status.morning || !status.afternoon)) {
+      router.replace("/(tabs)");
+    }
+  }, [session, sessionKey, todayProgress]);
 
   const [affirmations, setAffirmations] = useState<string[]>(
     Array(info.count).fill("")

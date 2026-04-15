@@ -17,6 +17,7 @@ import { GradientBackground } from "@/components/GradientBackground";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { UserSettings } from "@/utils/storage";
+import { validateNotificationTimes } from "@/utils/notifications";
 
 const STEPS = ["welcome", "cycle", "intention", "notifications"] as const;
 type Step = (typeof STEPS)[number];
@@ -68,21 +69,25 @@ export default function OnboardingScreen() {
   const [afternoonTime, setAfternoonTime] = useState("13:00");
   const [eveningTime, setEveningTime] = useState("21:00");
   const [loading, setLoading] = useState(false);
+  const [timeError, setTimeError] = useState<string | null>(null);
 
   const stepIndex = STEPS.indexOf(step);
   const progress = (stepIndex + 1) / STEPS.length;
 
   async function handleComplete() {
+    const times = { morning: morningTime, afternoon: afternoonTime, evening: eveningTime };
+    const errors = validateNotificationTimes(times);
+    if (errors.length > 0) {
+      setTimeError(errors.join(" "));
+      return;
+    }
+    setTimeError(null);
     setLoading(true);
     const settings: UserSettings = {
       cycleLength,
       startDate: new Date().toISOString(),
       intention,
-      notificationTimes: {
-        morning: morningTime,
-        afternoon: afternoonTime,
-        evening: eveningTime,
-      },
+      notificationTimes: times,
     };
     await completeOnboarding(settings);
     router.replace("/(tabs)");
@@ -283,6 +288,11 @@ export default function OnboardingScreen() {
                   colors={colors}
                 />
               </View>
+              {timeError ? (
+                <Text style={[styles.errorText, { color: colors.destructive }]}>
+                  {timeError}
+                </Text>
+              ) : null}
             </View>
           )}
 
@@ -458,5 +468,10 @@ const styles = StyleSheet.create({
   nextBtnText: {
     fontSize: 16,
     fontFamily: "Inter_600SemiBold",
+  },
+  errorText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
   },
 });
