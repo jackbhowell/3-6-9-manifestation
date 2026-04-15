@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
-import Svg, { Circle } from "react-native-svg";
+import Svg, { Circle, G } from "react-native-svg";
 
 import { useColors } from "@/hooks/useColors";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface TimerCircleProps {
   timeLeft: number;
@@ -20,8 +22,21 @@ export function TimerCircle({
 
   const radius = (size - 20) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = timeLeft / totalTime;
-  const offset = circumference * (1 - progress);
+
+  const initialOffset = circumference * (1 - timeLeft / totalTime);
+  const offsetAnim = useRef(new Animated.Value(initialOffset)).current;
+  const animRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    const targetOffset = circumference * (1 - timeLeft / totalTime);
+    if (animRef.current) animRef.current.stop();
+    animRef.current = Animated.timing(offsetAnim, {
+      toValue: targetOffset,
+      duration: 950,
+      useNativeDriver: false,
+    });
+    animRef.current.start();
+  }, [timeLeft, totalTime, circumference, offsetAnim]);
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -60,19 +75,22 @@ export function TimerCircle({
             strokeWidth={4}
             fill="transparent"
           />
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={colors.primary}
-            strokeWidth={6}
-            fill="transparent"
-            strokeDasharray={`${circumference} ${circumference}`}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            rotation="-90"
-            origin={`${size / 2}, ${size / 2}`}
-          />
+          {/* Horizontal flip reverses the drain direction to clockwise */}
+          <G transform={`translate(${size}, 0) scale(-1, 1)`}>
+            <AnimatedCircle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={colors.primary}
+              strokeWidth={6}
+              fill="transparent"
+              strokeDasharray={`${circumference} ${circumference}`}
+              strokeDashoffset={offsetAnim}
+              strokeLinecap="round"
+              rotation="-90"
+              origin={`${size / 2}, ${size / 2}`}
+            />
+          </G>
         </Svg>
       </Animated.View>
 
