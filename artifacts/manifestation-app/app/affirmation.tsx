@@ -21,26 +21,55 @@ import { useColors } from "@/hooks/useColors";
 
 type Session = "morning" | "afternoon" | "evening";
 
-const SESSION_INFO: Record<
-  Session,
-  { count: number; label: string; description: string; color: string }
-> = {
+interface SessionInfo {
+  count: number;
+  label: string;
+  style: string;
+  description: string;
+  guidance: string;
+  example: string;
+  placeholder: string;
+  color: string;
+}
+
+const SESSION_INFO: Record<Session, SessionInfo> = {
   morning: {
     count: 3,
     label: "Morning",
-    description: "Write your intention 3 times with full focus.",
+    style: "Intention",
+    description:
+      "Morning is for planting the seed. Write with openness and trust — ground yourself in what you are calling in.",
+    guidance:
+      "Keep it present tense and open. Begin with gratitude. \"I am grateful for and open to...\"",
+    example:
+      "I am grateful for and open to a life of deep peace, creative freedom and boundless joy.",
+    placeholder: "I am grateful for and open to...",
     color: "#F9C74F",
   },
   afternoon: {
     count: 6,
     label: "Afternoon",
-    description: "Deepen the signal — 6 repetitions build resonance.",
+    style: "Amplification",
+    description:
+      "Afternoon is for amplification. Add feeling and detail — let your body sense the reality of what you are attracting.",
+    guidance:
+      "Add more texture and feeling. Begin with gratitude. \"I am grateful for and attracting...\"",
+    example:
+      "I am grateful for and attracting a clear, undeniable experience of abundance that I can feel, see and share.",
+    placeholder: "I am grateful for and attracting...",
     color: "#A78BFA",
   },
   evening: {
     count: 9,
     label: "Evening",
-    description: "9 is the completion number. Feel it as you write.",
+    style: "Embodiment",
+    description:
+      "Evening is the most powerful session. Write as though it has already happened — feel it fully as you put each word down.",
+    guidance:
+      "Write in the present tense as though it is already so. \"I am so grateful that I am now...\"",
+    example:
+      "I am so grateful that I am now experiencing a life of profound purpose, ease and connection to the universe.",
+    placeholder: "I am so grateful that I am now...",
     color: "#7B61FF",
   },
 };
@@ -54,37 +83,63 @@ function isValidSession(s: string | undefined): s is Session {
 export default function AffirmationScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { session } = useLocalSearchParams<{ session: string }>();
-  const { saveAffirmations, settings, todayProgress } = useApp();
+  const { session, viewOnly } = useLocalSearchParams<{
+    session: string;
+    viewOnly?: string;
+  }>();
+  const { saveAffirmations, settings, todayProgress, allProgress, currentDay } =
+    useApp();
 
   const sessionKey: Session = isValidSession(session) ? session : "morning";
   const info = SESSION_INFO[sessionKey];
+  const isViewOnly = viewOnly === "true";
 
   useEffect(() => {
-    if (!isValidSession(session)) {
-      router.replace("/(tabs)");
-      return;
+    if (!isViewOnly) {
+      if (!isValidSession(session)) {
+        router.replace("/(tabs)");
+        return;
+      }
+      const status = todayProgress?.completionStatus;
+      if (!status) return;
+      if (status[sessionKey]) {
+        router.replace("/(tabs)");
+        return;
+      }
+      if (sessionKey === "afternoon" && !status.morning) {
+        router.replace("/(tabs)");
+        return;
+      }
+      if (sessionKey === "evening" && (!status.morning || !status.afternoon)) {
+        router.replace("/(tabs)");
+      }
     }
-    const status = todayProgress?.completionStatus;
-    if (!status) return;
-    if (status[sessionKey]) {
-      router.replace("/(tabs)");
-      return;
-    }
-    if (sessionKey === "afternoon" && !status.morning) {
-      router.replace("/(tabs)");
-      return;
-    }
-    if (sessionKey === "evening" && (!status.morning || !status.afternoon)) {
-      router.replace("/(tabs)");
-    }
-  }, [session, sessionKey, todayProgress]);
+  }, [session, sessionKey, todayProgress, isViewOnly]);
+
+  const storedAffirmations: string[] =
+    isViewOnly && todayProgress?.sessions[sessionKey]
+      ? todayProgress.sessions[sessionKey]
+      : [];
 
   const [affirmations, setAffirmations] = useState<string[]>(
-    Array(info.count).fill("")
+    isViewOnly
+      ? storedAffirmations.length
+        ? storedAffirmations
+        : Array(info.count).fill("")
+      : Array(info.count).fill("")
   );
   const [saving, setSaving] = useState(false);
+  const [showExample, setShowExample] = useState(false);
   const inputs = useRef<(TextInput | null)[]>([]);
+
+  const previousDaySession: string[] | null = (() => {
+    if (currentDay <= 1) return null;
+    const prev = allProgress[currentDay - 1];
+    if (!prev) return null;
+    const prevSess = prev.sessions[sessionKey];
+    if (!prevSess || prevSess.length === 0) return null;
+    return prevSess;
+  })();
 
   const filledCount = affirmations.filter((a) => a.trim().length > 0).length;
   const allFilled = filledCount === info.count;
@@ -130,25 +185,96 @@ export default function AffirmationScreen() {
             <Feather name="arrow-left" size={20} color={colors.foreground} />
           </Pressable>
           <View style={styles.headerTextContainer}>
-            <Text style={[styles.sessionLabel, { color: info.color }]}>
-              {info.label.toUpperCase()}
-            </Text>
+            <View style={styles.labelRow}>
+              <Text style={[styles.sessionLabel, { color: info.color }]}>
+                {info.label.toUpperCase()}
+              </Text>
+              <View
+                style={[
+                  styles.styleBadge,
+                  { backgroundColor: info.color + "22", borderColor: info.color + "55" },
+                ]}
+              >
+                <Text style={[styles.styleBadgeText, { color: info.color }]}>
+                  {info.style}
+                </Text>
+              </View>
+              {isViewOnly && (
+                <View
+                  style={[
+                    styles.viewOnlyBadge,
+                    { backgroundColor: colors.secondary, borderColor: colors.border },
+                  ]}
+                >
+                  <Text style={[styles.viewOnlyText, { color: colors.mutedForeground }]}>
+                    View only
+                  </Text>
+                </View>
+              )}
+            </View>
             <Text style={[styles.heading, { color: colors.foreground }]}>
               Affirmations
             </Text>
           </View>
         </View>
 
-        <ProgressBar
-          label=""
-          current={filledCount}
-          total={info.count}
-          color={info.color}
-        />
+        {!isViewOnly && (
+          <ProgressBar
+            label=""
+            current={filledCount}
+            total={info.count}
+            color={info.color}
+          />
+        )}
 
         <Text style={[styles.description, { color: colors.mutedForeground }]}>
           {info.description}
         </Text>
+
+        <View
+          style={[
+            styles.guidanceCard,
+            { backgroundColor: info.color + "11", borderColor: info.color + "44" },
+          ]}
+        >
+          <Text style={[styles.guidanceText, { color: info.color }]}>
+            {info.guidance}
+          </Text>
+          <Pressable
+            onPress={() => setShowExample((v) => !v)}
+            style={styles.exampleToggle}
+          >
+            <Text style={[styles.exampleToggleText, { color: info.color }]}>
+              {showExample ? "Hide example" : "Show example"}
+            </Text>
+            <Feather
+              name={showExample ? "chevron-up" : "chevron-down"}
+              size={14}
+              color={info.color}
+            />
+          </Pressable>
+          {showExample && (
+            <Text style={[styles.exampleText, { color: colors.foreground }]}>
+              "{info.example}"
+            </Text>
+          )}
+        </View>
+
+        {previousDaySession && !isViewOnly && (
+          <View
+            style={[
+              styles.prevCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.prevLabel, { color: colors.mutedForeground }]}>
+              PREVIOUS {info.label.toUpperCase()} AFFIRMATION
+            </Text>
+            <Text style={[styles.prevText, { color: colors.foreground }]}>
+              {previousDaySession[0]}
+            </Text>
+          </View>
+        )}
 
         {settings?.intention ? (
           <View
@@ -194,63 +320,88 @@ export default function AffirmationScreen() {
                   {i + 1}
                 </Text>
               </View>
-              <TextInput
-                ref={(r) => {
-                  inputs.current[i] = r;
-                }}
-                value={val}
-                onChangeText={(t) => updateAffirmation(i, t)}
-                placeholder={`Write your intention...`}
-                placeholderTextColor={colors.mutedForeground}
-                returnKeyType={i < info.count - 1 ? "next" : "done"}
-                onSubmitEditing={() => {
-                  if (i < info.count - 1) {
-                    inputs.current[i + 1]?.focus();
-                  }
-                }}
-                style={[
-                  styles.textInput,
-                  {
-                    color: colors.foreground,
-                    borderColor:
-                      val.trim().length > 0 ? info.color : colors.border,
-                    backgroundColor: colors.card,
-                  },
-                ]}
-              />
+              {isViewOnly ? (
+                <View
+                  style={[
+                    styles.viewOnlyInput,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.viewOnlyInputText,
+                      {
+                        color: val.trim()
+                          ? colors.foreground
+                          : colors.mutedForeground,
+                        fontStyle: val.trim() ? "italic" : "normal",
+                      },
+                    ]}
+                  >
+                    {val.trim() || "Not written"}
+                  </Text>
+                </View>
+              ) : (
+                <TextInput
+                  ref={(r) => {
+                    inputs.current[i] = r;
+                  }}
+                  value={val}
+                  onChangeText={(t) => updateAffirmation(i, t)}
+                  placeholder={info.placeholder}
+                  placeholderTextColor={colors.mutedForeground}
+                  returnKeyType={i < info.count - 1 ? "next" : "done"}
+                  onSubmitEditing={() => {
+                    if (i < info.count - 1) {
+                      inputs.current[i + 1]?.focus();
+                    }
+                  }}
+                  style={[
+                    styles.textInput,
+                    {
+                      color: colors.foreground,
+                      borderColor:
+                        val.trim().length > 0 ? info.color : colors.border,
+                      backgroundColor: colors.card,
+                    },
+                  ]}
+                />
+              )}
             </View>
           ))}
         </View>
 
-        <Pressable
-          onPress={handleSave}
-          disabled={!allFilled || saving}
-          style={[
-            styles.saveBtn,
-            {
-              backgroundColor: allFilled ? info.color : colors.secondary,
-              opacity: allFilled ? 1 : 0.5,
-            },
-          ]}
-        >
-          <Text
+        {!isViewOnly && (
+          <Pressable
+            onPress={handleSave}
+            disabled={!allFilled || saving}
             style={[
-              styles.saveBtnText,
+              styles.saveBtn,
               {
-                color: allFilled ? colors.primaryForeground : colors.mutedForeground,
+                backgroundColor: allFilled ? info.color : colors.secondary,
+                opacity: allFilled ? 1 : 0.5,
               },
             ]}
           >
-            {saving
-              ? "Saving..."
-              : allFilled
-              ? "Complete Session"
-              : `${filledCount}/${info.count} filled`}
-          </Text>
-          {allFilled && !saving && (
-            <Feather name="check" size={18} color={colors.primaryForeground} />
-          )}
-        </Pressable>
+            <Text
+              style={[
+                styles.saveBtnText,
+                {
+                  color: allFilled ? colors.primaryForeground : colors.mutedForeground,
+                },
+              ]}
+            >
+              {saving
+                ? "Saving..."
+                : allFilled
+                ? "Complete Session"
+                : `${filledCount}/${info.count} filled`}
+            </Text>
+            {allFilled && !saving && (
+              <Feather name="check" size={18} color={colors.primaryForeground} />
+            )}
+          </Pressable>
+        )}
       </KeyboardAwareScrollViewCompat>
     </GradientBackground>
   );
@@ -277,11 +428,38 @@ const styles = StyleSheet.create({
   },
   headerTextContainer: {
     gap: 2,
+    flex: 1,
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
   },
   sessionLabel: {
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
     letterSpacing: 2,
+  },
+  styleBadge: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  styleBadgeText: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+  },
+  viewOnlyBadge: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  viewOnlyText: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
   },
   heading: {
     fontSize: 26,
@@ -292,6 +470,51 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     lineHeight: 24,
     marginTop: -8,
+  },
+  guidanceCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    gap: 8,
+  },
+  guidanceText: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 22,
+    fontStyle: "italic",
+  },
+  exampleToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-start",
+  },
+  exampleToggleText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  exampleText: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 22,
+    fontStyle: "italic",
+  },
+  prevCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    gap: 4,
+  },
+  prevLabel: {
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1.5,
+  },
+  prevText: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 22,
+    fontStyle: "italic",
   },
   intentionHint: {
     borderWidth: 1,
@@ -338,6 +561,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     fontFamily: "Inter_400Regular",
+  },
+  viewOnlyInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  viewOnlyInputText: {
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 22,
   },
   saveBtn: {
     height: 56,

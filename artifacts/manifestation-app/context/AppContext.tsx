@@ -98,6 +98,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (granted && s.notificationsEnabled !== false) {
       await scheduleNotifications(s.notificationTimes);
     }
+    if (s.intention && s.intention.trim()) {
+      const existingItems = await loadManifestItems();
+      const alreadyExists = existingItems.some(
+        (item) => item.text.trim() === s.intention.trim()
+      );
+      if (!alreadyExists) {
+        const newItem: ManifestItem = {
+          id: `manifest-${Date.now()}`,
+          text: s.intention.trim(),
+          manifested: false,
+          createdAt: new Date().toISOString(),
+        };
+        await saveManifestItems([...existingItems, newItem]);
+        setManifestItems([...existingItems, newItem]);
+      }
+    }
     setSettings(s);
     const day = getCurrentDay(s.startDate, s.cycleLength);
     setCurrentDay(day);
@@ -193,6 +209,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const granted = await requestNotificationPermission();
       if (granted && s.notificationsEnabled !== false) {
         await scheduleNotifications(s.notificationTimes);
+      }
+      if (s.intention && s.intention.trim()) {
+        const existingItems = await loadManifestItems();
+        const alreadyExists = existingItems.some(
+          (item) => item.text.trim() === s.intention.trim()
+        );
+        if (!alreadyExists) {
+          const newItem: ManifestItem = {
+            id: `manifest-${Date.now()}`,
+            text: s.intention.trim(),
+            manifested: false,
+            createdAt: new Date().toISOString(),
+          };
+          await saveManifestItems([...existingItems, newItem]);
+          setManifestItems([...existingItems, newItem]);
+        }
       }
       setSettings(s);
       const day = getCurrentDay(s.startDate, s.cycleLength);

@@ -27,6 +27,24 @@ function completionPercent(progress: ArchivedJourney["progress"], cycleLength: n
   return Math.round((done / totalSessions) * 100);
 }
 
+function isJourneyFullyComplete(
+  progress: ArchivedJourney["progress"],
+  cycleLength: number
+): boolean {
+  for (let d = 1; d <= cycleLength; d++) {
+    const day = progress[d];
+    if (
+      !day ||
+      !day.completionStatus.morning ||
+      !day.completionStatus.afternoon ||
+      !day.completionStatus.evening
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function todayCompletionPercent(
   status: { morning: boolean; afternoon: boolean; evening: boolean } | null
 ): number {
@@ -63,6 +81,8 @@ export default function JourneysScreen() {
     return Math.round((done / totalSessions) * 100);
   })();
 
+  const sortedArchived = [...archivedJourneys].reverse();
+
   return (
     <GradientBackground>
       <ScrollView
@@ -76,17 +96,36 @@ export default function JourneysScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.foreground }]}>Journeys</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Every path you've walked
+        <View style={styles.headerRow}>
+          <View style={styles.headerText}>
+            <Text style={[styles.title, { color: colors.foreground }]}>Journeys</Text>
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+              Every path you've walked
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => router.push({ pathname: "/onboarding", params: { newJourney: "true" } })}
+            style={[styles.addBtn, { backgroundColor: colors.primary }]}
+          >
+            <Feather name="plus" size={20} color={colors.primaryForeground} />
+          </Pressable>
+        </View>
+
+        <View
+          style={[
+            styles.adviceBanner,
+            { backgroundColor: colors.secondary, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.adviceText, { color: colors.mutedForeground }]}>
+            ✦ The practice is most powerful when you give one journey your full attention. Begin a new path only when you feel complete with the current one.
           </Text>
         </View>
 
         {settings && (
           <>
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              ACTIVE
+              CURRENT
             </Text>
             <Pressable
               onPress={() => router.push("/")}
@@ -112,12 +151,7 @@ export default function JourneysScreen() {
                     </Text>
                   ) : null}
                 </View>
-                <View
-                  style={[
-                    styles.practiceBtn,
-                    { backgroundColor: colors.primary },
-                  ]}
-                >
+                <View style={[styles.practiceBtn, { backgroundColor: colors.primary }]}>
                   <Feather name="arrow-right" size={18} color={colors.primaryForeground} />
                 </View>
               </View>
@@ -131,14 +165,18 @@ export default function JourneysScreen() {
           </>
         )}
 
-        {archivedJourneys.length > 0 && (
+        {sortedArchived.length > 0 && (
           <>
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              COMPLETED
+              PAST JOURNEYS
             </Text>
             <View style={styles.archivedList}>
-              {[...archivedJourneys].reverse().map((journey, idx) => {
+              {sortedArchived.map((journey) => {
                 const pct = completionPercent(journey.progress, journey.cycleLength);
+                const fullyDone = isJourneyFullyComplete(
+                  journey.progress,
+                  journey.cycleLength
+                );
                 const startDate = new Date(journey.startDate).toLocaleDateString("en-GB", {
                   day: "numeric",
                   month: "short",
@@ -160,20 +198,38 @@ export default function JourneysScreen() {
                     }
                     style={[
                       styles.archivedCard,
-                      { backgroundColor: colors.card, borderColor: colors.border },
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: fullyDone ? colors.primary : colors.border,
+                        opacity: fullyDone ? 0.55 : 0.9,
+                      },
                     ]}
                   >
                     <View style={styles.archivedTop}>
                       <View style={styles.archivedMeta}>
-                        <Text style={[styles.archivedName, { color: colors.foreground }]}>
-                          {journey.name}
-                        </Text>
+                        <View style={styles.archivedNameRow}>
+                          <Text style={[styles.archivedName, { color: colors.foreground }]}>
+                            {journey.name}
+                          </Text>
+                          {fullyDone && (
+                            <View
+                              style={[
+                                styles.completedBadge,
+                                { backgroundColor: colors.primary + "22", borderColor: colors.primary + "55" },
+                              ]}
+                            >
+                              <Text style={[styles.completedBadgeText, { color: colors.primary }]}>
+                                Complete
+                              </Text>
+                            </View>
+                          )}
+                        </View>
                         <Text style={[styles.archivedDates, { color: colors.mutedForeground }]}>
                           {startDate} – {endDate}
                         </Text>
                       </View>
                       <View style={styles.archivedRight}>
-                        <Text style={[styles.archivedPct, { color: colors.primary }]}>
+                        <Text style={[styles.archivedPct, { color: fullyDone ? colors.success : colors.primary }]}>
                           {pct}%
                         </Text>
                         <Text style={[styles.archivedPctLabel, { color: colors.mutedForeground }]}>
@@ -203,7 +259,7 @@ export default function JourneysScreen() {
               Your first journey awaits
             </Text>
             <Text style={[styles.emptyBody, { color: colors.mutedForeground }]}>
-              Complete onboarding to begin your 3-6-9 practice and your journeys will be recorded here.
+              Complete onboarding to begin your 3-6-9 practice. Your journeys will live here.
             </Text>
           </View>
         )}
@@ -222,9 +278,7 @@ function StatChip({
   colors: ReturnType<typeof useColors>;
 }) {
   return (
-    <View
-      style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.border }]}
-    >
+    <View style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <Text style={[styles.chipValue, { color: colors.primary }]}>{value}</Text>
       <Text style={[styles.chipLabel, { color: colors.mutedForeground }]}>{label}</Text>
     </View>
@@ -237,8 +291,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 16,
   },
-  header: {
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  headerText: {
     gap: 6,
+    flex: 1,
   },
   title: {
     fontSize: 28,
@@ -247,6 +307,25 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 15,
     fontFamily: "Inter_400Regular",
+    fontStyle: "italic",
+  },
+  addBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  adviceBanner: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+  },
+  adviceText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 20,
     fontStyle: "italic",
   },
   sectionLabel: {
@@ -330,8 +409,24 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 3,
   },
+  archivedNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
   archivedName: {
     fontSize: 17,
+    fontFamily: "Inter_600SemiBold",
+  },
+  completedBadge: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  completedBadgeText: {
+    fontSize: 11,
     fontFamily: "Inter_600SemiBold",
   },
   archivedDates: {

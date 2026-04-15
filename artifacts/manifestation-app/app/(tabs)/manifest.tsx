@@ -75,7 +75,7 @@ export default function ManifestScreen() {
       >
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.foreground }]}>
-            What I'm Calling In
+            Manifestation List
           </Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
             Set your intentions. Watch them arrive.
@@ -142,7 +142,7 @@ export default function ManifestScreen() {
           >
             <Feather name="plus" size={18} color={colors.primary} />
             <Text style={[styles.newBtnText, { color: colors.primary }]}>
-              Add something to call in
+              Add something to manifest into your life
             </Text>
           </Pressable>
         )}

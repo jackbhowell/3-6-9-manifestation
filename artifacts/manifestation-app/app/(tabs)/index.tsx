@@ -174,6 +174,10 @@ export default function HomeScreen() {
     router.push({ pathname: "/affirmation", params: { session } });
   }
 
+  function viewSession(session: Session) {
+    router.push({ pathname: "/affirmation", params: { session, viewOnly: "true" } });
+  }
+
   const progressPct = (() => {
     const completed = Object.values(todayProgress?.completionStatus ?? {}).filter(Boolean).length;
     return (completed / 3) * 100;
@@ -267,7 +271,13 @@ export default function HomeScreen() {
             return (
               <Pressable
                 key={sess.key}
-                onPress={() => canStart && startSession(sess.key)}
+                onPress={() => {
+                  if (complete) {
+                    viewSession(sess.key);
+                  } else if (canStart) {
+                    startSession(sess.key);
+                  }
+                }}
                 testID={`session-${sess.key}`}
                 style={[
                   styles.sessionCard,

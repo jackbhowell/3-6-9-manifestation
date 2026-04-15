@@ -32,6 +32,12 @@ const SECTIONS: Section[] = [
       'Nikola Tesla, the visionary inventor, believed that 3, 6, and 9 held the keys to the universe. "If you knew the magnificence of the three, six and nine," he is said to have written, "you would have a key to the universe."\n\nIn sacred geometry and numerology, 3 represents creation and expression. 6 represents harmony and balance. 9 represents completion and the highest vibration — the number that returns to itself in all multiplication.\n\nThese three numbers form a cycle within themselves. They are not arbitrary.',
   },
   {
+    id: "phases",
+    title: "Morning, Afternoon, Evening — Three Different Energies",
+    body:
+      "Each of the three daily sessions has its own role. They are not the same affirmation repeated mechanically — they are three distinct movements of the same intention, building throughout the day.\n\n☀️  MORNING — INTENTION (3 times)\nMorning is for planting the seed. Write with openness, trust and gratitude. Keep it grounded and present. Begin with thanks.\n\nExample: \"I am grateful for and open to a life of deep peace, creative freedom and boundless joy.\"\n\n🌤  AFTERNOON — AMPLIFICATION (6 times)\nAfternoon is for amplification. Add more feeling and detail — let your body begin to sense the reality of what you are attracting.\n\nExample: \"I am grateful for and attracting a clear, abundant life filled with ease, purpose and meaningful connection.\"\n\n🌙  EVENING — EMBODIMENT (9 times)\nEvening is the most powerful session. Write as though it has already happened. Feel it fully. This is where the subconscious receives the signal most deeply.\n\nExample: \"I am so grateful that I am now living a life of profound fulfilment, aligned with my highest self and surrounded by love.\"\n\nAlways write in the present tense. Always begin from a place of gratitude — not wanting, but receiving.",
+  },
+  {
     id: "why",
     title: "Why It Works",
     body:
@@ -47,7 +53,7 @@ const SECTIONS: Section[] = [
     id: "how",
     title: "How to Write",
     body:
-      "Write each affirmation by hand if you can — there is power in the physical act of writing. Write in the present tense, as though it is already so. Not \"I want\" or \"I will\" — but \"I am,\" \"I have,\" \"I feel.\"\n\nBe specific without being rigid. Speak to the essence of what you want, not just the form. \"I am aligned with abundance and ease\" invites more than just a number.\n\nBefore each session, take three slow breaths. Feel into the reality of the affirmation. Write from that place — not from hoping, but from knowing.",
+      "Write in the present tense, as though it is already so. Not \"I want\" or \"I will\" — but \"I am,\" \"I have,\" \"I feel.\"\n\nBegin from gratitude. Gratitude is the frequency of having, not wanting. \"I am grateful for...\" moves you immediately into the energy of receiving.\n\nBe specific without being rigid. Speak to the essence of what you want, not just its form. Before each session, take three slow breaths. Feel into the reality of the affirmation. Write from that place — not from hoping, but from knowing.",
   },
   {
     id: "reflect",
@@ -131,7 +137,7 @@ export default function LearnScreen() {
           })}
         </View>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: 20 }]}>
           <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
             ✦ ✦ ✦
           </Text>

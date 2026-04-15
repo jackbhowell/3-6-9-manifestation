@@ -1,9 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -69,25 +67,6 @@ export default function SettingsScreen() {
     if (Platform.OS !== "web") {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-  }
-
-  function handleStartNewJourney() {
-    if (Platform.OS === "web") {
-      router.push("/onboarding");
-      return;
-    }
-    Alert.alert(
-      "Start New Journey",
-      "Your current journey will be archived. You'll begin a fresh cycle from today. Are you ready?",
-      [
-        { text: "Not Yet", style: "cancel" },
-        {
-          text: "Begin New Journey",
-          style: "default",
-          onPress: () => router.push("/onboarding"),
-        },
-      ]
-    );
   }
 
   if (!settings) return null;
@@ -207,18 +186,6 @@ export default function SettingsScreen() {
           </Text>
         </Pressable>
 
-        <Pressable
-          onPress={handleStartNewJourney}
-          style={[
-            styles.newJourneyBtn,
-            { backgroundColor: colors.secondary, borderColor: colors.border },
-          ]}
-        >
-          <Feather name="refresh-cw" size={16} color={colors.primary} />
-          <Text style={[styles.newJourneyText, { color: colors.primary }]}>
-            Start a New Journey
-          </Text>
-        </Pressable>
       </ScrollView>
     </GradientBackground>
   );
@@ -385,19 +352,6 @@ const styles = StyleSheet.create({
   },
   saveBtnText: {
     fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
-  },
-  newJourneyBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 14,
-  },
-  newJourneyText: {
-    fontSize: 15,
     fontFamily: "Inter_600SemiBold",
   },
 });

@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -60,9 +60,11 @@ function TimeInput({
 export default function OnboardingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { completeOnboarding } = useApp();
+  const { completeOnboarding, startNewJourney } = useApp();
+  const { newJourney } = useLocalSearchParams<{ newJourney?: string }>();
+  const isNewJourney = newJourney === "true";
 
-  const [step, setStep] = useState<Step>("welcome");
+  const [step, setStep] = useState<Step>(isNewJourney ? "cycle" : "welcome");
   const [cycleLength, setCycleLength] = useState<33 | 45>(33);
   const [intention, setIntention] = useState("");
   const [morningTime, setMorningTime] = useState("08:00");
@@ -89,8 +91,13 @@ export default function OnboardingScreen() {
       intention,
       notificationTimes: times,
     };
-    await completeOnboarding(settings);
-    router.replace("/(tabs)");
+    if (isNewJourney) {
+      await startNewJourney(settings);
+      router.replace("/(tabs)/journeys");
+    } else {
+      await completeOnboarding(settings);
+      router.replace("/");
+    }
   }
 
   function next() {
@@ -104,7 +111,12 @@ export default function OnboardingScreen() {
 
   function back() {
     const i = STEPS.indexOf(step);
-    if (i > 0) setStep(STEPS[i - 1]);
+    const firstStep = isNewJourney ? "cycle" : "welcome";
+    if (step === firstStep) {
+      router.back();
+    } else if (i > 0) {
+      setStep(STEPS[i - 1]);
+    }
   }
 
   const isLast = step === "notifications";
@@ -229,7 +241,7 @@ export default function OnboardingScreen() {
               <TextInput
                 value={intention}
                 onChangeText={setIntention}
-                placeholder="I am grateful for..."
+                placeholder="I'd like to manifest..."
                 placeholderTextColor={colors.mutedForeground}
                 multiline
                 numberOfLines={4}
