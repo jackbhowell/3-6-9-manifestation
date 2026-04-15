@@ -238,30 +238,30 @@ export default function AffirmationScreen() {
         <View
           style={[
             styles.guidanceCard,
-            { backgroundColor: info.color + "11", borderColor: info.color + "44" },
+            { backgroundColor: colors.primary + "11", borderColor: colors.primary + "44" },
           ]}
         >
           <Pressable
             onPress={() => setShowExample((v) => !v)}
             style={styles.tipToggleRow}
           >
-            <Feather name="star" size={13} color={info.color} />
-            <Text style={[styles.tipToggleLabel, { color: info.color }]}>
+            <Feather name="star" size={13} color={colors.primary} />
+            <Text style={[styles.tipToggleLabel, { color: colors.primary }]}>
               Tip {"&"} Example
             </Text>
             <Feather
               name={showExample ? "chevron-up" : "chevron-down"}
               size={14}
-              color={info.color}
+              color={colors.primary}
               style={{ marginLeft: "auto" }}
             />
           </Pressable>
           {showExample && (
             <>
-              <Text style={[styles.guidanceText, { color: info.color }]}>
+              <Text style={[styles.guidanceText, { color: colors.primary }]}>
                 {info.guidance}
               </Text>
-              <Text style={[styles.exampleText, { color: info.color + "CC" }]}>
+              <Text style={[styles.exampleText, { color: colors.primary + "CC" }]}>
                 "{info.example}"
               </Text>
             </>

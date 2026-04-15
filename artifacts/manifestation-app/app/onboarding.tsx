@@ -60,7 +60,7 @@ function TimeInput({
 export default function OnboardingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { completeOnboarding, startNewJourney } = useApp();
+  const { completeOnboarding, startNewJourney, manifestItems } = useApp();
   const { newJourney } = useLocalSearchParams<{ newJourney?: string }>();
   const isNewJourney = newJourney === "true";
 
@@ -238,6 +238,63 @@ export default function OnboardingScreen() {
                 What do you want to manifest? This is optional — but writing it
                 down anchors your practice.
               </Text>
+
+              {manifestItems.filter((i) => !i.manifested).length > 0 && (
+                <View style={styles.pickSection}>
+                  <Text style={[styles.pickLabel, { color: colors.mutedForeground }]}>
+                    PICK FROM YOUR LIST
+                  </Text>
+                  <View style={styles.pickList}>
+                    {manifestItems
+                      .filter((i) => !i.manifested)
+                      .map((item) => {
+                        const selected = intention.trim() === item.text.trim();
+                        return (
+                          <Pressable
+                            key={item.id}
+                            onPress={() =>
+                              setIntention(selected ? "" : item.text)
+                            }
+                            style={[
+                              styles.pickItem,
+                              {
+                                borderColor: selected
+                                  ? colors.primary
+                                  : colors.border,
+                                backgroundColor: selected
+                                  ? colors.primary + "18"
+                                  : colors.card,
+                              },
+                            ]}
+                          >
+                            <Feather
+                              name={selected ? "check-circle" : "circle"}
+                              size={16}
+                              color={selected ? colors.primary : colors.mutedForeground}
+                            />
+                            <Text
+                              style={[
+                                styles.pickItemText,
+                                {
+                                  color: selected
+                                    ? colors.foreground
+                                    : colors.mutedForeground,
+                                  flex: 1,
+                                },
+                              ]}
+                            >
+                              {item.text}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                  </View>
+                  <Text style={[styles.orLabel, { color: colors.mutedForeground }]}>
+                    — or write your own —
+                  </Text>
+                </View>
+              )}
+
               <TextInput
                 value={intention}
                 onChangeText={setIntention}
@@ -414,6 +471,38 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     textTransform: "uppercase",
     letterSpacing: 2,
+  },
+  pickSection: {
+    gap: 10,
+  },
+  pickLabel: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 2,
+  },
+  pickList: {
+    gap: 8,
+  },
+  pickItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  pickItemText: {
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 22,
+  },
+  orLabel: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    letterSpacing: 1,
+    marginTop: 4,
   },
   intentionInput: {
     borderWidth: 1,

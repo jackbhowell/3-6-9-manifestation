@@ -17,10 +17,9 @@ import { useColors } from "@/hooks/useColors";
 
 const TOTAL_SECONDS = 60;
 
-// Play three soft breath-pulse tones via Web Audio API.
-// Each pulse is a 432 Hz sine wave with a gentle attack/decay envelope.
-// Volumes: 0.35 → 0.22 → 0.12, with a 600 ms gap between pulses.
-function playThreePulses() {
+// Single soft ding via Web Audio API.
+// 528 Hz sine wave, 8 ms linear attack, 1.4 s exponential decay, volume 0.13.
+function playDing() {
   if (typeof window === "undefined") return;
   try {
     const AudioContextClass =
@@ -29,36 +28,27 @@ function playThreePulses() {
     if (!AudioContextClass) return;
 
     const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
 
-    function pulse(startTime: number, peakGain: number) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 528;
 
-      osc.type = "sine";
-      osc.frequency.value = 432;
+    const t0 = ctx.currentTime + 0.02;
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(0.13, t0 + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.4);
 
-      gain.gain.setValueAtTime(0, startTime);
-      gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.08);
-      gain.gain.setValueAtTime(peakGain, startTime + 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 2.8);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(startTime);
-      osc.stop(startTime + 2.9);
-      osc.onended = () => {
-        gain.disconnect();
-        osc.disconnect();
-      };
-    }
-
-    const t0 = ctx.currentTime + 0.05;
-    pulse(t0, 0.35);
-    pulse(t0 + 3.2, 0.22);
-    pulse(t0 + 6.4, 0.12);
-
-    setTimeout(() => ctx.close(), 10000);
+    osc.start(t0);
+    osc.stop(t0 + 1.5);
+    osc.onended = () => {
+      gain.disconnect();
+      osc.disconnect();
+      ctx.close();
+    };
   } catch {
   }
 }
@@ -75,7 +65,7 @@ export default function ReflectionScreen() {
 
   const handleComplete = useCallback(async () => {
     setIsComplete(true);
-    playThreePulses();
+    playDing();
     if (Platform.OS !== "web") {
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
