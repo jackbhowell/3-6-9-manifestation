@@ -8,12 +8,12 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GradientBackground } from "@/components/GradientBackground";
+import { TimePicker } from "@/components/TimePicker";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { validateNotificationTimes } from "@/utils/notifications";
@@ -197,7 +197,6 @@ function TimeRow({
   value,
   onChange,
   colors,
-  valid,
   last,
 }: {
   label: string;
@@ -211,29 +210,16 @@ function TimeRow({
   return (
     <View
       style={[
-        styles.row,
+        styles.timeRowWrap,
         { borderBottomColor: colors.border },
         last ? { borderBottomWidth: 0 } : {},
       ]}
     >
-      <Feather name={icon} size={16} color={colors.mutedForeground} />
-      <Text style={[styles.rowLabel, { color: colors.foreground, flex: 1 }]}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        style={[
-          styles.timeInput,
-          {
-            color: valid ? colors.foreground : colors.destructive,
-            borderColor: valid ? colors.border : colors.destructive,
-            backgroundColor: colors.secondary,
-          },
-        ]}
-        keyboardType="numbers-and-punctuation"
-        maxLength={5}
-        placeholder="HH:MM"
-        placeholderTextColor={colors.mutedForeground}
-      />
+      <View style={styles.timeRowLabel}>
+        <Feather name={icon} size={15} color={colors.mutedForeground} />
+        <Text style={[styles.rowLabel, { color: colors.foreground }]}>{label}</Text>
+      </View>
+      <TimePicker value={value} onChange={onChange} />
     </View>
   );
 }
@@ -306,19 +292,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  timeRowWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  timeRowLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   rowLabel: {
     fontSize: 15,
     fontFamily: "Inter_400Regular",
-  },
-  timeInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-    textAlign: "center",
-    width: 70,
   },
   errorText: {
     fontSize: 13,

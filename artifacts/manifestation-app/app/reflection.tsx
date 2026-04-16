@@ -22,42 +22,54 @@ const chimeSource = require("@/assets/sounds/chime.wav");
 
 // ─── Heartbeat synthesizer ────────────────────────────────────────────────────
 // Slow meditative heartbeat (~52 bpm) using Web Audio API.
-// Two low sine pulses per beat (lub-dub), very quiet so it sits far back.
+// Each beat is a lub-dub pair: two short sine+harmonic pulses shaped with a
+// fast attack and exponential decay so they thump clearly on laptop speakers.
 function createHeartbeatScheduler(ctx: AudioContext) {
   const bpm = 52;
   const period = 60 / bpm; // ~1.15 s per beat
-  const scheduleAhead = 0.3; // look-ahead window in seconds
-  const tickInterval = 120; // ms between scheduler ticks
+  const scheduleAhead = 0.4;
+  const tickInterval = 100;
 
-  let nextBeatTime = ctx.currentTime + 0.1;
+  let nextBeatTime = ctx.currentTime + 0.05;
   let stopped = false;
 
-  function scheduleBeat(t: number) {
-    // lub — louder, slightly higher
-    const lub = ctx.createOscillator();
-    const lubGain = ctx.createGain();
-    lub.type = "sine";
-    lub.frequency.value = 72;
-    lubGain.gain.setValueAtTime(0, t);
-    lubGain.gain.linearRampToValueAtTime(0.065, t + 0.005);
-    lubGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
-    lub.connect(lubGain);
-    lubGain.connect(ctx.destination);
-    lub.start(t);
-    lub.stop(t + 0.2);
+  // Build a shared master gain so we can fade in gently
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(0, ctx.currentTime);
+  masterGain.gain.linearRampToValueAtTime(1, ctx.currentTime + 1.5);
+  masterGain.connect(ctx.destination);
 
-    // dub — softer, 220 ms after lub
-    const dub = ctx.createOscillator();
-    const dubGain = ctx.createGain();
-    dub.type = "sine";
-    dub.frequency.value = 60;
-    dubGain.gain.setValueAtTime(0, t + 0.22);
-    dubGain.gain.linearRampToValueAtTime(0.045, t + 0.225);
-    dubGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
-    dub.connect(dubGain);
-    dubGain.connect(ctx.destination);
-    dub.start(t + 0.22);
-    dub.stop(t + 0.4);
+  function pulse(t: number, freq: number, gain: number, decay: number) {
+    // Fundamental
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(gain, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start(t);
+    osc.stop(t + decay + 0.01);
+
+    // Octave harmonic — adds body audible on small speakers
+    const osc2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.value = freq * 2;
+    g2.gain.setValueAtTime(0, t);
+    g2.gain.linearRampToValueAtTime(gain * 0.45, t + 0.008);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t + decay * 0.7);
+    osc2.connect(g2);
+    g2.connect(masterGain);
+    osc2.start(t);
+    osc2.stop(t + decay);
+  }
+
+  function scheduleBeat(t: number) {
+    pulse(t,          120, 0.32, 0.22); // lub — louder
+    pulse(t + 0.24,   100, 0.22, 0.20); // dub — slightly softer, 240ms later
   }
 
   function tick() {
@@ -137,19 +149,25 @@ export default function ReflectionScreen() {
   }, [started, handleComplete]);
 
   function startTimer() {
-    // Start heartbeat
+    // Start heartbeat via Web Audio API (web-only — native uses expo-audio)
     try {
       if (typeof window !== "undefined") {
-        const AudioCtx =
-          (window as unknown as Record<string, unknown>).AudioContext as typeof AudioContext | undefined ??
-          (window as unknown as Record<string, unknown>).webkitAudioContext as typeof AudioContext | undefined;
-        if (AudioCtx) {
-          const ctx = new AudioCtx();
+        const win = window as unknown as Record<string, unknown>;
+        const AudioCtxCtor = (win.AudioContext ?? win.webkitAudioContext) as
+          | (new () => AudioContext)
+          | undefined;
+        if (AudioCtxCtor) {
+          const ctx = new AudioCtxCtor();
+          // Chrome may suspend AudioContext even after user gesture — resume it
+          if (ctx.state === "suspended") {
+            ctx.resume().catch(() => {});
+          }
           heartbeatCtxRef.current = ctx;
           stopHeartbeatRef.current = createHeartbeatScheduler(ctx);
         }
       }
     } catch {
+      // Audio not supported — silently skip
     }
     setStarted(true);
   }

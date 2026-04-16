@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GradientBackground } from "@/components/GradientBackground";
+import { TimePicker } from "@/components/TimePicker";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { UserSettings } from "@/utils/storage";
@@ -38,21 +39,7 @@ function TimeInput({
       <Text style={[styles.timeLabel, { color: colors.mutedForeground }]}>
         {label}
       </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder="HH:MM"
-        placeholderTextColor={colors.mutedForeground}
-        keyboardType="numbers-and-punctuation"
-        style={[
-          styles.timeInput,
-          {
-            color: colors.foreground,
-            borderColor: colors.border,
-            backgroundColor: colors.card,
-          },
-        ]}
-      />
+      <TimePicker value={value} onChange={onChange} />
     </View>
   );
 }
@@ -245,8 +232,13 @@ export default function OnboardingScreen() {
                     PICK FROM YOUR LIST
                   </Text>
                   <View style={styles.pickList}>
-                    {manifestItems
-                      .filter((i) => !i.manifested)
+                    {Array.from(
+                      new Map(
+                        manifestItems
+                          .filter((i) => !i.manifested)
+                          .map((i) => [i.text.trim().toLowerCase(), i])
+                      ).values()
+                    )
                       .map((item) => {
                         const selected = intention.trim() === item.text.trim();
                         return (
@@ -320,8 +312,7 @@ export default function OnboardingScreen() {
                 Set your reminders
               </Text>
               <Text style={[styles.body, { color: colors.mutedForeground }]}>
-                We'll remind you to complete each session. Enter times in 24h
-                format.
+                We'll remind you to complete each session. Scroll to set each time.
               </Text>
               <View
                 style={[
