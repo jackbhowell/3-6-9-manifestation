@@ -20,25 +20,97 @@ const TOTAL_SECONDS = 60;
 
 const chimeSource = require("@/assets/sounds/chime.wav");
 
+// ─── Heartbeat synthesizer ────────────────────────────────────────────────────
+// Slow meditative heartbeat (~52 bpm) using Web Audio API.
+// Two low sine pulses per beat (lub-dub), very quiet so it sits far back.
+function createHeartbeatScheduler(ctx: AudioContext) {
+  const bpm = 52;
+  const period = 60 / bpm; // ~1.15 s per beat
+  const scheduleAhead = 0.3; // look-ahead window in seconds
+  const tickInterval = 120; // ms between scheduler ticks
+
+  let nextBeatTime = ctx.currentTime + 0.1;
+  let stopped = false;
+
+  function scheduleBeat(t: number) {
+    // lub — louder, slightly higher
+    const lub = ctx.createOscillator();
+    const lubGain = ctx.createGain();
+    lub.type = "sine";
+    lub.frequency.value = 72;
+    lubGain.gain.setValueAtTime(0, t);
+    lubGain.gain.linearRampToValueAtTime(0.065, t + 0.005);
+    lubGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    lub.connect(lubGain);
+    lubGain.connect(ctx.destination);
+    lub.start(t);
+    lub.stop(t + 0.2);
+
+    // dub — softer, 220 ms after lub
+    const dub = ctx.createOscillator();
+    const dubGain = ctx.createGain();
+    dub.type = "sine";
+    dub.frequency.value = 60;
+    dubGain.gain.setValueAtTime(0, t + 0.22);
+    dubGain.gain.linearRampToValueAtTime(0.045, t + 0.225);
+    dubGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+    dub.connect(dubGain);
+    dubGain.connect(ctx.destination);
+    dub.start(t + 0.22);
+    dub.stop(t + 0.4);
+  }
+
+  function tick() {
+    if (stopped) return;
+    while (nextBeatTime < ctx.currentTime + scheduleAhead) {
+      scheduleBeat(nextBeatTime);
+      nextBeatTime += period;
+    }
+    setTimeout(tick, tickInterval);
+  }
+
+  tick();
+  return () => { stopped = true; };
+}
+
 export default function ReflectionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { session } = useLocalSearchParams<{ session: string }>();
 
   const player = useAudioPlayer(chimeSource);
+  const heartbeatCtxRef = useRef<AudioContext | null>(null);
+  const stopHeartbeatRef = useRef<(() => void) | null>(null);
 
   const [timeLeft, setTimeLeft] = useState(TOTAL_SECONDS);
   const [isComplete, setIsComplete] = useState(false);
   const [started, setStarted] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Tear down heartbeat when component unmounts
+  useEffect(() => {
+    return () => {
+      stopHeartbeatRef.current?.();
+      heartbeatCtxRef.current?.close();
+    };
+  }, []);
+
   const handleComplete = useCallback(async () => {
+    // Stop heartbeat
+    stopHeartbeatRef.current?.();
+    heartbeatCtxRef.current?.close().catch(() => {});
+    heartbeatCtxRef.current = null;
+
     setIsComplete(true);
+
+    // Play chime
     try {
       player.seekTo(0);
       player.play();
     } catch {
     }
+
+    // Haptic on device
     if (Platform.OS !== "web") {
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -65,10 +137,26 @@ export default function ReflectionScreen() {
   }, [started, handleComplete]);
 
   function startTimer() {
+    // Start heartbeat
+    try {
+      if (typeof window !== "undefined") {
+        const AudioCtx =
+          (window as unknown as Record<string, unknown>).AudioContext as typeof AudioContext | undefined ??
+          (window as unknown as Record<string, unknown>).webkitAudioContext as typeof AudioContext | undefined;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          heartbeatCtxRef.current = ctx;
+          stopHeartbeatRef.current = createHeartbeatScheduler(ctx);
+        }
+      }
+    } catch {
+    }
     setStarted(true);
   }
 
   function handleDone() {
+    stopHeartbeatRef.current?.();
+    heartbeatCtxRef.current?.close().catch(() => {});
     router.replace("/(tabs)");
   }
 
