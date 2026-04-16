@@ -1,5 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+export type CompletionSound = "chime" | "bell" | "singing-bowl";
+
 export interface UserSettings {
   cycleLength: 33 | 45;
   startDate: string;
@@ -11,6 +13,7 @@ export interface UserSettings {
     evening: string;
   };
   notificationsEnabled?: boolean;
+  completionSound?: CompletionSound;
 }
 
 export interface SessionData {

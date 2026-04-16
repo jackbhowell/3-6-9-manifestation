@@ -14,12 +14,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GradientBackground } from "@/components/GradientBackground";
 import { TimerCircle } from "@/components/TimerCircle";
+import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { CompletionSound } from "@/utils/storage";
 
 const TOTAL_SECONDS = 60;
 
-const chimeSource = require("@/assets/sounds/chime.wav");
 const heartbeatSource = require("@/assets/sounds/heartbeat.wav");
+const soundSources: Record<CompletionSound, number> = {
+  chime:          require("@/assets/sounds/chime.wav"),
+  bell:           require("@/assets/sounds/bell.wav"),
+  "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
+};
 
 // ─── Heartbeat synthesizer (web only) ─────────────────────────────────────────
 // Slow meditative heartbeat (~52 bpm) using Web Audio API.
@@ -91,8 +97,10 @@ export default function ReflectionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { session } = useLocalSearchParams<{ session: string }>();
+  const { settings } = useApp();
 
-  const player = useAudioPlayer(chimeSource);
+  const soundKey: CompletionSound = settings?.completionSound ?? "chime";
+  const player = useAudioPlayer(soundSources[soundKey]);
   // Native heartbeat player — always created so hook rules are satisfied,
   // but only used when Platform.OS !== 'web'
   const heartbeatPlayer = useAudioPlayer(heartbeatSource);

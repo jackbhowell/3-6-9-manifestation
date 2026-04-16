@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import {
@@ -17,6 +18,19 @@ import { TimePicker } from "@/components/TimePicker";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { validateNotificationTimes } from "@/utils/notifications";
+import { CompletionSound } from "@/utils/storage";
+
+const SOUND_OPTIONS: { key: CompletionSound; label: string; icon: string }[] = [
+  { key: "chime",        label: "Chime",        icon: "triangle" },
+  { key: "bell",         label: "Bell",          icon: "bell" },
+  { key: "singing-bowl", label: "Singing Bowl",  icon: "disc" },
+];
+
+const soundSources: Record<CompletionSound, number> = {
+  chime:          require("@/assets/sounds/chime.wav"),
+  bell:           require("@/assets/sounds/bell.wav"),
+  "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
+};
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -31,9 +45,21 @@ export default function SettingsScreen() {
   const [notifsEnabled, setNotifsEnabled] = useState(
     settings?.notificationsEnabled !== false
   );
+  const [completionSound, setCompletionSound] = useState<CompletionSound>(
+    settings?.completionSound ?? "chime"
+  );
   const [saving, setSaving] = useState(false);
   const [timeError, setTimeError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  const chimePlayer = useAudioPlayer(soundSources["chime"]);
+  const bellPlayer = useAudioPlayer(soundSources["bell"]);
+  const bowlPlayer = useAudioPlayer(soundSources["singing-bowl"]);
+  const previewPlayers: Record<CompletionSound, ReturnType<typeof useAudioPlayer>> = {
+    chime:          chimePlayer,
+    bell:           bellPlayer,
+    "singing-bowl": bowlPlayer,
+  };
 
   useEffect(() => {
     if (settings) {
@@ -41,8 +67,18 @@ export default function SettingsScreen() {
       setAfternoon(settings.notificationTimes.afternoon);
       setEvening(settings.notificationTimes.evening);
       setNotifsEnabled(settings.notificationsEnabled !== false);
+      setCompletionSound(settings.completionSound ?? "chime");
     }
   }, [settings]);
+
+  function handlePickSound(key: CompletionSound) {
+    setCompletionSound(key);
+    try {
+      previewPlayers[key].seekTo(0);
+      previewPlayers[key].play();
+    } catch {
+    }
+  }
 
   async function handleSave() {
     if (!settings) return;
@@ -58,6 +94,7 @@ export default function SettingsScreen() {
       ...settings,
       notificationTimes: times,
       notificationsEnabled: notifsEnabled,
+      completionSound,
     };
     await updateSettings(updated);
     await refreshProgress();
@@ -150,6 +187,51 @@ export default function SettingsScreen() {
               {timeError}
             </Text>
           ) : null}
+        </View>
+
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.cardHeader}>
+            <Feather name="music" size={18} color={colors.primary} />
+            <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+              Completion Sound
+            </Text>
+          </View>
+          <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+            Choose the sound that plays when your reflection timer ends. Tap an option to preview it.
+          </Text>
+          <View style={styles.soundPicker}>
+            {SOUND_OPTIONS.map((opt, idx) => {
+              const isSelected = completionSound === opt.key;
+              return (
+                <Pressable
+                  key={opt.key}
+                  onPress={() => handlePickSound(opt.key)}
+                  style={[
+                    styles.soundOption,
+                    {
+                      backgroundColor: isSelected ? colors.primary + "22" : "transparent",
+                      borderColor: isSelected ? colors.primary : colors.border,
+                      borderRightWidth: idx < SOUND_OPTIONS.length - 1 ? 0 : StyleSheet.hairlineWidth,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name={opt.icon as React.ComponentProps<typeof Feather>["name"]}
+                    size={16}
+                    color={isSelected ? colors.primary : colors.mutedForeground}
+                  />
+                  <Text
+                    style={[
+                      styles.soundOptionLabel,
+                      { color: isSelected ? colors.primary : colors.foreground },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -341,6 +423,26 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     flex: 1,
     textAlign: "right",
+  },
+  soundPicker: {
+    flexDirection: "row",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginTop: 4,
+  },
+  soundOption: {
+    flex: 1,
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    gap: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  soundOptionLabel: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
   },
   saveBtn: {
     borderRadius: 14,
