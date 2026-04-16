@@ -53,9 +53,9 @@ const SESSION_INFO: Record<Session, SessionInfo> = {
     description:
       "Afternoon is for amplification. Add feeling and detail — let your body sense the reality of what you are attracting.",
     guidance:
-      "Add more texture and feeling. Begin with gratitude. \"I am grateful for and attracting...\"",
+      "Add more texture and feeling. Begin with gratitude. \"I am grateful for attracting...\"",
     example:
-      "I am grateful for and attracting a clear, undeniable experience of abundance that I can feel, see and share.",
+      "I am grateful for attracting a clear, undeniable experience of abundance that I can feel, see and share.",
     placeholder: "Affirmation...",
     color: "#A78BFA",
   },
@@ -190,19 +190,9 @@ export default function AffirmationScreen() {
           </Pressable>
           <View style={styles.headerTextContainer}>
             <View style={styles.labelRow}>
-              <Text style={[styles.sessionLabel, { color: info.color }]}>
-                {info.label.toUpperCase()}
+              <Text style={[styles.sessionLabel, { color: colors.mutedForeground }]}>
+                {info.label.toUpperCase()} · {info.style.toUpperCase()}
               </Text>
-              <View
-                style={[
-                  styles.styleBadge,
-                  { backgroundColor: info.color + "22", borderColor: info.color + "55" },
-                ]}
-              >
-                <Text style={[styles.styleBadgeText, { color: info.color }]}>
-                  {info.style}
-                </Text>
-              </View>
               {isViewOnly && (
                 <View
                   style={[
@@ -227,7 +217,7 @@ export default function AffirmationScreen() {
             label=""
             current={filledCount}
             total={info.count}
-            color={info.color}
+            color={colors.primary}
           />
         )}
 
@@ -308,9 +298,9 @@ export default function AffirmationScreen() {
                   styles.inputNumber,
                   {
                     backgroundColor:
-                      val.trim().length > 0 ? info.color : colors.card,
+                      val.trim().length > 0 ? colors.primary : colors.card,
                     borderColor:
-                      val.trim().length > 0 ? info.color : colors.border,
+                      val.trim().length > 0 ? colors.primary : colors.border,
                   },
                 ]}
               >
@@ -369,7 +359,7 @@ export default function AffirmationScreen() {
                     {
                       color: colors.foreground,
                       borderColor:
-                        val.trim().length > 0 ? info.color : colors.border,
+                        val.trim().length > 0 ? colors.primary : colors.border,
                       backgroundColor: colors.card,
                     },
                   ]}
@@ -386,7 +376,7 @@ export default function AffirmationScreen() {
             style={[
               styles.saveBtn,
               {
-                backgroundColor: allFilled ? info.color : colors.secondary,
+                backgroundColor: allFilled ? colors.primary : colors.secondary,
                 opacity: allFilled ? 1 : 0.5,
               },
             ]}

@@ -2,7 +2,7 @@ import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Image, Platform, StyleSheet, View, useColorScheme } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 
@@ -10,6 +10,18 @@ type FeatherIconName = React.ComponentProps<typeof Feather>["name"];
 
 function TabIcon({ name, color }: { name: FeatherIconName; color: string }) {
   return <Feather name={name} size={22} color={color} />;
+}
+
+const logoSource = require("../../assets/images/logo_transparent.png");
+
+function LogoIcon({ color }: { color: string }) {
+  return (
+    <Image
+      source={logoSource}
+      style={{ width: 26, height: 26, tintColor: color }}
+      resizeMode="contain"
+    />
+  );
 }
 
 export default function TabLayout() {
@@ -65,7 +77,7 @@ export default function TabLayout() {
         name="manifest"
         options={{
           title: "Manifest",
-          tabBarIcon: ({ color }) => <TabIcon name="star" color={color} />,
+          tabBarIcon: ({ color }) => <LogoIcon color={color} />,
         }}
       />
       <Tabs.Screen
