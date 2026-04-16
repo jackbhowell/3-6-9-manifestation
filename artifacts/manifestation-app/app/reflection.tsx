@@ -20,78 +20,11 @@ import { CompletionSound } from "@/utils/storage";
 
 const TOTAL_SECONDS = 60;
 
-const heartbeatSource = require("@/assets/sounds/heartbeat.wav");
 const soundSources: Record<CompletionSound, number> = {
   chime:          require("@/assets/sounds/chime.wav"),
   bell:           require("@/assets/sounds/bell.wav"),
   "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
 };
-
-// ─── Heartbeat synthesizer (web only) ─────────────────────────────────────────
-// Slow meditative heartbeat (~52 bpm) using Web Audio API.
-// Each beat is a lub-dub pair: two short sine+harmonic pulses shaped with a
-// fast attack and exponential decay so they thump clearly on laptop speakers.
-// On native platforms, expo-audio plays the pre-generated heartbeat.wav instead.
-function createHeartbeatScheduler(ctx: AudioContext) {
-  const bpm = 52;
-  const period = 60 / bpm; // ~1.15 s per beat
-  const scheduleAhead = 0.4;
-  const tickInterval = 100;
-
-  let nextBeatTime = ctx.currentTime + 0.05;
-  let stopped = false;
-
-  // Build a shared master gain so we can fade in gently
-  const masterGain = ctx.createGain();
-  masterGain.gain.setValueAtTime(0, ctx.currentTime);
-  masterGain.gain.linearRampToValueAtTime(1, ctx.currentTime + 1.5);
-  masterGain.connect(ctx.destination);
-
-  function pulse(t: number, freq: number, gain: number, decay: number) {
-    // Fundamental
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = freq;
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(gain, t + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
-    osc.connect(g);
-    g.connect(masterGain);
-    osc.start(t);
-    osc.stop(t + decay + 0.01);
-
-    // Octave harmonic — adds body audible on small speakers
-    const osc2 = ctx.createOscillator();
-    const g2 = ctx.createGain();
-    osc2.type = "sine";
-    osc2.frequency.value = freq * 2;
-    g2.gain.setValueAtTime(0, t);
-    g2.gain.linearRampToValueAtTime(gain * 0.45, t + 0.008);
-    g2.gain.exponentialRampToValueAtTime(0.0001, t + decay * 0.7);
-    osc2.connect(g2);
-    g2.connect(masterGain);
-    osc2.start(t);
-    osc2.stop(t + decay);
-  }
-
-  function scheduleBeat(t: number) {
-    pulse(t,          120, 0.16, 0.22); // lub — louder
-    pulse(t + 0.24,   100, 0.11, 0.20); // dub — slightly softer, 240ms later
-  }
-
-  function tick() {
-    if (stopped) return;
-    while (nextBeatTime < ctx.currentTime + scheduleAhead) {
-      scheduleBeat(nextBeatTime);
-      nextBeatTime += period;
-    }
-    setTimeout(tick, tickInterval);
-  }
-
-  tick();
-  return () => { stopped = true; };
-}
 
 export default function ReflectionScreen() {
   const colors = useColors();
@@ -101,68 +34,26 @@ export default function ReflectionScreen() {
 
   const soundKey: CompletionSound = settings?.completionSound ?? "chime";
   const player = useAudioPlayer(soundSources[soundKey]);
-  // Native heartbeat player — always created so hook rules are satisfied,
-  // but only used when Platform.OS !== 'web'
-  const heartbeatPlayer = useAudioPlayer(heartbeatSource);
-  const heartbeatCtxRef = useRef<AudioContext | null>(null);
-  const stopHeartbeatRef = useRef<(() => void) | null>(null);
 
   const [timeLeft, setTimeLeft] = useState(TOTAL_SECONDS);
   const [isComplete, setIsComplete] = useState(false);
   const [started, setStarted] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Tear down heartbeat when component unmounts
-  useEffect(() => {
-    return () => {
-      if (Platform.OS !== "web") {
-        try {
-          heartbeatPlayer.pause();
-          heartbeatPlayer.loop = false;
-          heartbeatPlayer.seekTo(0);
-        } catch {}
-      } else {
-        stopHeartbeatRef.current?.();
-        heartbeatCtxRef.current?.close();
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const stopHeartbeat = useCallback(() => {
-    if (Platform.OS !== "web") {
-      try {
-        heartbeatPlayer.pause();
-        heartbeatPlayer.loop = false;
-        heartbeatPlayer.seekTo(0);
-      } catch {}
-    } else {
-      stopHeartbeatRef.current?.();
-      heartbeatCtxRef.current?.close().catch(() => {});
-      heartbeatCtxRef.current = null;
-    }
-  }, [heartbeatPlayer]);
-
   const handleComplete = useCallback(async () => {
-    stopHeartbeat();
-
     setIsComplete(true);
-
-    // Play chime
     try {
       player.seekTo(0);
       player.play();
     } catch {
     }
-
-    // Haptic on device
     if (Platform.OS !== "web") {
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {
       }
     }
-  }, [player, stopHeartbeat]);
+  }, [player]);
 
   useEffect(() => {
     if (!started) return;
@@ -182,43 +73,10 @@ export default function ReflectionScreen() {
   }, [started, handleComplete]);
 
   function startTimer() {
-    if (Platform.OS !== "web") {
-      // Native: use expo-audio to loop the pre-generated heartbeat file
-      try {
-        heartbeatPlayer.volume = 0.5;
-        heartbeatPlayer.loop = true;
-        heartbeatPlayer.seekTo(0);
-        heartbeatPlayer.play();
-      } catch {
-        // Audio not supported — silently skip
-      }
-    } else {
-      // Web: synthesize via Web Audio API
-      try {
-        if (typeof window !== "undefined") {
-          const win = window as unknown as Record<string, unknown>;
-          const AudioCtxCtor = (win.AudioContext ?? win.webkitAudioContext) as
-            | (new () => AudioContext)
-            | undefined;
-          if (AudioCtxCtor) {
-            const ctx = new AudioCtxCtor();
-            // Chrome may suspend AudioContext even after user gesture — resume it
-            if (ctx.state === "suspended") {
-              ctx.resume().catch(() => {});
-            }
-            heartbeatCtxRef.current = ctx;
-            stopHeartbeatRef.current = createHeartbeatScheduler(ctx);
-          }
-        }
-      } catch {
-        // Audio not supported — silently skip
-      }
-    }
     setStarted(true);
   }
 
   function handleDone() {
-    stopHeartbeat();
     router.replace("/(tabs)");
   }
 
@@ -312,12 +170,7 @@ export default function ReflectionScreen() {
                 onPress={handleDone}
                 style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
               >
-                <Text
-                  style={[
-                    styles.primaryBtnText,
-                    { color: colors.primaryForeground },
-                  ]}
-                >
+                <Text style={[styles.primaryBtnText, { color: colors.primaryForeground }]}>
                   Back to Home
                 </Text>
               </Pressable>

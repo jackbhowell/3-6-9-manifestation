@@ -197,37 +197,54 @@ export default function SettingsScreen() {
             </Text>
           </View>
           <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
-            Choose the sound that plays when your reflection timer ends. Tap an option to preview it.
+            Plays when your 60-second reflection timer ends. Tap to preview.
           </Text>
-          <View style={styles.soundPicker}>
-            {SOUND_OPTIONS.map((opt, idx) => {
+          <View style={styles.soundList}>
+            {SOUND_OPTIONS.map((opt) => {
               const isSelected = completionSound === opt.key;
               return (
                 <Pressable
                   key={opt.key}
                   onPress={() => handlePickSound(opt.key)}
                   style={[
-                    styles.soundOption,
+                    styles.soundRow,
                     {
-                      backgroundColor: isSelected ? colors.primary + "22" : "transparent",
+                      backgroundColor: isSelected ? colors.primary + "15" : colors.secondary,
                       borderColor: isSelected ? colors.primary : colors.border,
-                      borderRightWidth: idx < SOUND_OPTIONS.length - 1 ? 0 : StyleSheet.hairlineWidth,
                     },
                   ]}
                 >
-                  <Feather
-                    name={opt.icon as React.ComponentProps<typeof Feather>["name"]}
-                    size={16}
-                    color={isSelected ? colors.primary : colors.mutedForeground}
-                  />
+                  <View
+                    style={[
+                      styles.soundIconWrap,
+                      { backgroundColor: isSelected ? colors.primary + "30" : colors.card },
+                    ]}
+                  >
+                    <Feather
+                      name={opt.icon as React.ComponentProps<typeof Feather>["name"]}
+                      size={16}
+                      color={isSelected ? colors.primary : colors.mutedForeground}
+                    />
+                  </View>
                   <Text
                     style={[
-                      styles.soundOptionLabel,
-                      { color: isSelected ? colors.primary : colors.foreground },
+                      styles.soundRowLabel,
+                      { color: isSelected ? colors.foreground : colors.mutedForeground,
+                        fontFamily: isSelected ? "Inter_600SemiBold" : "Inter_400Regular" },
                     ]}
                   >
                     {opt.label}
                   </Text>
+                  <View style={styles.soundRowRight}>
+                    <Feather
+                      name="play-circle"
+                      size={18}
+                      color={isSelected ? colors.primary : colors.mutedForeground + "88"}
+                    />
+                    {isSelected && (
+                      <Feather name="check" size={16} color={colors.primary} />
+                    )}
+                  </View>
                 </Pressable>
               );
             })}
@@ -424,25 +441,34 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "right",
   },
-  soundPicker: {
-    flexDirection: "row",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    overflow: "hidden",
+  soundList: {
+    gap: 8,
     marginTop: 4,
   },
-  soundOption: {
-    flex: 1,
-    flexDirection: "column",
+  soundRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  soundIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
-    gap: 6,
-    borderWidth: StyleSheet.hairlineWidth,
   },
-  soundOptionLabel: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
+  soundRowLabel: {
+    flex: 1,
+    fontSize: 15,
+  },
+  soundRowRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   saveBtn: {
     borderRadius: 14,
