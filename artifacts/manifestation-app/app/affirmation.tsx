@@ -94,9 +94,19 @@ export default function AffirmationScreen() {
   const info = SESSION_INFO[sessionKey];
   const isViewOnly = viewOnly === "true";
 
-  // Guard fires only once — when todayProgress first loads.
-  // Keeping it from re-firing prevents a midnight edge case where todayProgress
-  // refreshes to the new day after saving, which would incorrectly redirect.
+  // ── Session window helpers (mirrors index.tsx logic) ─────────────────────
+  function parseMinsA(timeStr: string): number {
+    const [h, m] = timeStr.split(":").map(Number);
+    return (h ?? 0) * 60 + (m ?? 0);
+  }
+  function sessionExpiredA(s: "morning" | "afternoon"): boolean {
+    if (!settings) return false;
+    const now = new Date().getHours() * 60 + new Date().getMinutes();
+    const t = settings.notificationTimes;
+    if (s === "morning") return now >= parseMinsA(t.afternoon);
+    return now >= parseMinsA(t.evening);
+  }
+
   const guardChecked = useRef(false);
   useEffect(() => {
     if (isViewOnly || guardChecked.current) return;
@@ -106,19 +116,28 @@ export default function AffirmationScreen() {
     }
     const status = todayProgress?.completionStatus;
     if (!status) return; // not loaded yet — wait for next update
+    if (!settings) return;
     guardChecked.current = true;
+    // Already complete — redirect to view mode instead
     if (status[sessionKey]) {
       router.replace("/(tabs)");
       return;
     }
-    if (sessionKey === "afternoon" && !status.morning) {
+    // Afternoon is only blocked if morning is still in its window (not expired) and incomplete
+    if (sessionKey === "afternoon" && !status.morning && !sessionExpiredA("morning")) {
       router.replace("/(tabs)");
       return;
     }
-    if (sessionKey === "evening" && (!status.morning || !status.afternoon)) {
-      router.replace("/(tabs)");
+    // Evening is blocked if either afternoon (or morning, if afternoon also missed) are unresolved
+    if (sessionKey === "evening") {
+      const morningOk = status.morning || sessionExpiredA("morning");
+      const afternoonOk = status.afternoon || sessionExpiredA("afternoon");
+      if (!morningOk || !afternoonOk) {
+        router.replace("/(tabs)");
+        return;
+      }
     }
-  }, [session, sessionKey, todayProgress, isViewOnly]);
+  }, [session, sessionKey, todayProgress, isViewOnly, settings]);
 
   const storedAffirmations: string[] =
     isViewOnly && todayProgress?.sessions[sessionKey]
