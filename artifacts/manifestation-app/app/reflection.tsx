@@ -76,8 +76,8 @@ function createHeartbeatScheduler(ctx: AudioContext) {
   }
 
   function scheduleBeat(t: number) {
-    pulse(t,          120, 0.32, 0.22); // lub — louder
-    pulse(t + 0.24,   100, 0.22, 0.20); // dub — slightly softer, 240ms later
+    pulse(t,          120, 0.16, 0.22); // lub — louder
+    pulse(t + 0.24,   100, 0.11, 0.20); // dub — slightly softer, 240ms later
   }
 
   function tick() {
@@ -185,6 +185,7 @@ export default function ReflectionScreen() {
     if (Platform.OS !== "web") {
       // Native: use expo-audio to loop the pre-generated heartbeat file
       try {
+        heartbeatPlayer.volume = 0.5;
         heartbeatPlayer.loop = true;
         heartbeatPlayer.seekTo(0);
         heartbeatPlayer.play();
