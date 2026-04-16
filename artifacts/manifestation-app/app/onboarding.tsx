@@ -312,7 +312,7 @@ export default function OnboardingScreen() {
                 Set your reminders
               </Text>
               <Text style={[styles.body, { color: colors.mutedForeground }]}>
-                We'll remind you to complete each session. Scroll to set each time.
+                These times set when each session window opens — and when you'll receive a reminder. Morning closes when afternoon begins, and afternoon closes when evening begins.
               </Text>
               <View
                 style={[

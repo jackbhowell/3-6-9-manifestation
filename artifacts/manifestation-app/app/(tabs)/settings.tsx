@@ -96,9 +96,12 @@ export default function SettingsScreen() {
           <View style={styles.cardHeader}>
             <Feather name="bell" size={18} color={colors.primary} />
             <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-              Reminders
+              Session Windows
             </Text>
           </View>
+          <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+            Each time marks when that session window opens. Morning closes when afternoon begins, afternoon closes when evening begins. You'll also receive a reminder notification at each time.
+          </Text>
 
           <View style={[styles.row, { borderBottomColor: colors.border }]}>
             <Text style={[styles.rowLabel, { color: colors.foreground }]}>
@@ -284,6 +287,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontFamily: "Inter_600SemiBold",
+  },
+  cardDescription: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 19,
+    marginBottom: 6,
   },
   row: {
     flexDirection: "row",

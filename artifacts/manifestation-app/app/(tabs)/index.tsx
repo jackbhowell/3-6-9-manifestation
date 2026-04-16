@@ -195,16 +195,20 @@ export default function HomeScreen() {
     return null; // all remaining sessions missed
   }
 
-  /** True when the user can actually tap Start on this session right now */
+  /** True when the user can actually tap Start on this session right now.
+   *  Sessions are purely time-window based — no ordering requirement.
+   *  Each session opens at its scheduled time and closes when the next one begins.
+   */
   function canStartSession(session: Session): boolean {
     const status = todayProgress?.completionStatus;
     const complete = status?.[session] ?? false;
     if (complete) return false;
-    if (isSessionExpired(session, times)) return false; // missed — window closed
-    // Require ordered completion only for non-expired sessions
-    if (session === "morning") return true;
-    if (session === "afternoon") return !!(status?.morning);
-    if (session === "evening") return !!(status?.morning && status?.afternoon);
+    if (isSessionExpired(session, times)) return false; // window already closed
+    const now = nowMins();
+    // Session is open once its scheduled time has arrived
+    if (session === "morning") return now >= parseMins(times.morning);
+    if (session === "afternoon") return now >= parseMins(times.afternoon);
+    if (session === "evening") return now >= parseMins(times.evening);
     return false;
   }
 
@@ -379,8 +383,8 @@ export default function HomeScreen() {
                       : missed
                       ? "Window closed · Not completed"
                       : canStart
-                      ? `${sess.count} affirmations — ${countdown}`
-                      : `${sess.count} affirmations · ${countdown}`}
+                      ? `${sess.count} affirmations · Open now`
+                      : `${sess.count} affirmations · Opens ${countdown}`}
                   </Text>
                 </View>
                 {!complete && (
