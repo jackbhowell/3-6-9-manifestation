@@ -35,6 +35,37 @@ const SESSION_CONFIG: SessionConfig[] = [
   { key: "evening", label: "Evening", count: 9, icon: "moon", timeKey: "evening" },
 ];
 
+// ── Time helpers ────────────────────────────────────────────────────────────
+
+/** Minutes since midnight for a "HH:MM" string */
+function parseMins(timeStr: string): number {
+  const parts = timeStr.split(":");
+  const h = parseInt(parts[0] ?? "0", 10);
+  const m = parseInt(parts[1] ?? "0", 10);
+  return h * 60 + m;
+}
+
+/** Current minutes since midnight */
+function nowMins(): number {
+  const n = new Date();
+  return n.getHours() * 60 + n.getMinutes();
+}
+
+/**
+ * A session is "expired" (missed its window) when the NEXT session's
+ * scheduled time has already passed today.
+ * Evening expires at the end of the day (past midnight — never same day).
+ */
+function isSessionExpired(
+  session: Session,
+  times: { morning: string; afternoon: string; evening: string }
+): boolean {
+  const now = nowMins();
+  if (session === "morning") return now >= parseMins(times.afternoon);
+  if (session === "afternoon") return now >= parseMins(times.evening);
+  return false; // evening never expires same day
+}
+
 function secondsUntilTime(timeStr: string): number {
   const parts = timeStr.split(":");
   const h = parseInt(parts[0] ?? "0", 10);
@@ -144,31 +175,51 @@ export default function HomeScreen() {
     setEditingName(false);
   }
 
-  function getNextAvailableSession(): Session | null {
-    const status = todayProgress?.completionStatus;
-    if (!status) return "morning";
-    if (!status.morning) return "morning";
-    if (!status.afternoon) return "afternoon";
-    if (!status.evening) return "evening";
-    return null;
+  const times = settings.notificationTimes;
+
+  /** A session is "missed" when its time window has closed and it wasn't completed */
+  function isSessionMissed(session: Session): boolean {
+    const complete = todayProgress?.completionStatus[session] ?? false;
+    return !complete && isSessionExpired(session, times);
   }
 
-  const nextSession = getNextAvailableSession();
-  const allDone = nextSession === null;
-  const cycleComplete = currentDay >= settings.cycleLength && allDone;
+  function getNextAvailableSession(): Session | null {
+    const status = todayProgress?.completionStatus;
+    for (const s of ["morning", "afternoon", "evening"] as Session[]) {
+      if (status?.[s]) continue;           // already done
+      if (isSessionExpired(s, times)) continue; // window closed — skip
+      return s;
+    }
+    // If all remaining are expired or completed, check if all are truly done
+    if (status?.morning && status?.afternoon && status?.evening) return null;
+    return null; // all remaining sessions missed
+  }
 
+  /** True when the user can actually tap Start on this session right now */
   function canStartSession(session: Session): boolean {
     const status = todayProgress?.completionStatus;
-    if (!status) return session === "morning";
-    if (session === "morning") return !status.morning;
-    if (session === "afternoon") return status.morning && !status.afternoon;
-    if (session === "evening") return status.morning && status.afternoon && !status.evening;
+    const complete = status?.[session] ?? false;
+    if (complete) return false;
+    if (isSessionExpired(session, times)) return false; // missed — window closed
+    // Require ordered completion only for non-expired sessions
+    if (session === "morning") return true;
+    if (session === "afternoon") return !!(status?.morning);
+    if (session === "evening") return !!(status?.morning && status?.afternoon);
     return false;
   }
 
   function isSessionComplete(session: Session): boolean {
     return todayProgress?.completionStatus[session] ?? false;
   }
+
+  const nextSession = getNextAvailableSession();
+
+  // "All done" when every session is either completed or its window has closed for the day
+  const allSessionsSettled = (["morning", "afternoon", "evening"] as Session[]).every(
+    (s) => (todayProgress?.completionStatus[s] ?? false) || isSessionExpired(s, times)
+  );
+  const allDone = nextSession === null && allSessionsSettled;
+  const cycleComplete = currentDay >= settings.cycleLength && allDone;
 
   function startSession(session: Session) {
     router.push({ pathname: "/affirmation", params: { session } });
@@ -264,44 +315,58 @@ export default function HomeScreen() {
           </Text>
           {SESSION_CONFIG.map((sess) => {
             const complete = isSessionComplete(sess.key);
+            const missed = isSessionMissed(sess.key);
             const canStart = canStartSession(sess.key);
-            const locked = !complete && !canStart;
+            const upcoming = !complete && !canStart && !missed; // locked but time not yet passed
             const countdown = countdowns[sess.key];
 
             return (
               <Pressable
                 key={sess.key}
                 onPress={() => {
-                  if (complete) {
-                    viewSession(sess.key);
-                  } else if (canStart) {
-                    startSession(sess.key);
-                  }
+                  if (complete) viewSession(sess.key);
+                  else if (canStart) startSession(sess.key);
                 }}
                 testID={`session-${sess.key}`}
                 style={[
                   styles.sessionCard,
                   {
-                    backgroundColor: complete ? colors.secondary : colors.card,
+                    backgroundColor: complete
+                      ? colors.secondary
+                      : missed
+                      ? colors.card
+                      : colors.card,
                     borderColor: complete
                       ? colors.primary
                       : canStart
                       ? colors.accent
                       : colors.border,
-                    opacity: locked ? 0.5 : 1,
+                    opacity: upcoming ? 0.5 : missed ? 0.45 : 1,
                   },
                 ]}
               >
                 <View
                   style={[
                     styles.sessionIcon,
-                    { backgroundColor: complete ? colors.accent : colors.secondary },
+                    {
+                      backgroundColor: complete
+                        ? colors.accent
+                        : missed
+                        ? colors.secondary
+                        : colors.secondary,
+                    },
                   ]}
                 >
                   <Feather
-                    name={complete ? "check" : sess.icon}
+                    name={complete ? "check" : missed ? "slash" : sess.icon}
                     size={20}
-                    color={complete ? colors.foreground : colors.primary}
+                    color={
+                      complete
+                        ? colors.foreground
+                        : missed
+                        ? colors.mutedForeground
+                        : colors.primary
+                    }
                   />
                 </View>
                 <View style={styles.sessionInfo}>
@@ -311,6 +376,8 @@ export default function HomeScreen() {
                   <Text style={[styles.sessionSub, { color: colors.mutedForeground }]}>
                     {complete
                       ? "Completed"
+                      : missed
+                      ? "Window closed · Not completed"
                       : canStart
                       ? `${sess.count} affirmations — ${countdown}`
                       : `${sess.count} affirmations · ${countdown}`}
