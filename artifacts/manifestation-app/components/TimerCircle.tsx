@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, G } from "react-native-svg";
 
 import { useColors } from "@/hooks/useColors";
@@ -9,46 +9,62 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 interface TimerCircleProps {
   timeLeft: number;
   totalTime: number;
+  started: boolean;
   size?: number;
 }
 
 export function TimerCircle({
   timeLeft,
   totalTime,
+  started,
   size = 240,
 }: TimerCircleProps) {
   const colors = useColors();
-  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const radius = (size - 20) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  const initialOffset = circumference * (1 - timeLeft / totalTime);
-  const offsetAnim = useRef(new Animated.Value(initialOffset)).current;
-  const animRef = useRef<Animated.CompositeAnimation | null>(null);
+  // Single continuous sweep — one animation over the full duration.
+  // useNativeDriver: false is required for SVG strokeDashoffset.
+  const offsetAnim = useRef(new Animated.Value(0)).current;
+  const sweepRef = useRef<Animated.CompositeAnimation | null>(null);
+  const hasStarted = useRef(false);
 
   useEffect(() => {
-    const targetOffset = circumference * (1 - timeLeft / totalTime);
-    if (animRef.current) animRef.current.stop();
-    animRef.current = Animated.timing(offsetAnim, {
-      toValue: targetOffset,
-      duration: 950,
-      useNativeDriver: false,
-    });
-    animRef.current.start();
-  }, [timeLeft, totalTime, circumference, offsetAnim]);
+    if (started && !hasStarted.current) {
+      hasStarted.current = true;
+      if (sweepRef.current) sweepRef.current.stop();
+      sweepRef.current = Animated.timing(offsetAnim, {
+        toValue: circumference,
+        duration: totalTime * 1000,
+        easing: Easing.linear,
+        useNativeDriver: false,
+      });
+      sweepRef.current.start();
+    }
+    if (!started) {
+      hasStarted.current = false;
+      if (sweepRef.current) sweepRef.current.stop();
+      offsetAnim.setValue(0);
+    }
+  }, [started, totalTime, circumference, offsetAnim]);
 
+  // Slow breathing pulse — native driver so it runs on the UI thread
+  // independently of the SVG animation.
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.06,
-          duration: 2500,
+          toValue: 1.055,
+          duration: 3000,
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 2500,
+          duration: 3000,
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
       ])
@@ -63,6 +79,7 @@ export function TimerCircle({
 
   return (
     <View style={{ width: size, height: size }}>
+      {/* Pulse wrapper — native driver, isolated from the SVG layer */}
       <Animated.View
         style={[StyleSheet.absoluteFill, { transform: [{ scale: pulseAnim }] }]}
       >
@@ -75,7 +92,7 @@ export function TimerCircle({
             strokeWidth={4}
             fill="transparent"
           />
-          {/* Horizontal flip reverses the drain direction to clockwise */}
+          {/* Horizontal flip makes the ring drain clockwise */}
           <G transform={`translate(${size}, 0) scale(-1, 1)`}>
             <AnimatedCircle
               cx={size / 2}

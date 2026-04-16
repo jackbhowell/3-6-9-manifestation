@@ -149,9 +149,14 @@ export default function LearnScreen() {
                         ]}
                       >
                         <Text
-                          style={[styles.pullQuoteText, { color: colors.primary }]}
+                          style={[
+                            styles.pullQuoteText,
+                            { color: colors.primary },
+                          ]}
                         >
-                          {"\u201C"}{section.pullQuote.text}{"\u201D"}
+                          {"\u201C"}
+                          {section.pullQuote.text}
+                          {"\u201D"}
                         </Text>
                         <Text
                           style={[
@@ -170,14 +175,14 @@ export default function LearnScreen() {
           })}
         </View>
 
-        <View style={[styles.footer, { paddingBottom: 40 }]}>
+        <View style={[styles.footer, { paddingBottom: 70 }]}>
           <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
             ✦ ✦ ✦
           </Text>
           <Text style={[styles.footerBody, { color: colors.mutedForeground }]}>
             What you write with feeling, you write into being. The distance
             between where you are and where you are going is measured not in
-            time — but in belief.
+            time, but in belief.
           </Text>
         </View>
       </ScrollView>
@@ -274,16 +279,16 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: "center",
     gap: 12,
-    paddingVertical: 20,
+    paddingVertical: 10,
   },
   footerText: {
     fontSize: 18,
     letterSpacing: 8,
   },
   footerBody: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "Inter_400Regular",
-    lineHeight: 24,
+    lineHeight: 20,
     textAlign: "center",
     fontStyle: "italic",
     paddingHorizontal: 10,

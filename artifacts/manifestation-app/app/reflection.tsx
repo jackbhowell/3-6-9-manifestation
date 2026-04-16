@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -17,46 +18,14 @@ import { useColors } from "@/hooks/useColors";
 
 const TOTAL_SECONDS = 60;
 
-// Single soft ding via Web Audio API.
-// 528 Hz sine wave, 8 ms linear attack, 1.4 s exponential decay, volume 0.13.
-function playDing() {
-  if (typeof window === "undefined") return;
-  try {
-    const AudioContextClass =
-      (window as unknown as Record<string, unknown>).AudioContext as typeof AudioContext | undefined ??
-      (window as unknown as Record<string, unknown>).webkitAudioContext as typeof AudioContext | undefined;
-    if (!AudioContextClass) return;
-
-    const ctx = new AudioContextClass();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = "sine";
-    osc.frequency.value = 528;
-
-    const t0 = ctx.currentTime + 0.02;
-    gain.gain.setValueAtTime(0, t0);
-    gain.gain.linearRampToValueAtTime(0.13, t0 + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.4);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(t0);
-    osc.stop(t0 + 1.5);
-    osc.onended = () => {
-      gain.disconnect();
-      osc.disconnect();
-      ctx.close();
-    };
-  } catch {
-  }
-}
+const chimeSource = require("@/assets/sounds/chime.wav");
 
 export default function ReflectionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { session } = useLocalSearchParams<{ session: string }>();
+
+  const player = useAudioPlayer(chimeSource);
 
   const [timeLeft, setTimeLeft] = useState(TOTAL_SECONDS);
   const [isComplete, setIsComplete] = useState(false);
@@ -65,14 +34,18 @@ export default function ReflectionScreen() {
 
   const handleComplete = useCallback(async () => {
     setIsComplete(true);
-    playDing();
+    try {
+      player.seekTo(0);
+      player.play();
+    } catch {
+    }
     if (Platform.OS !== "web") {
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {
       }
     }
-  }, []);
+  }, [player]);
 
   useEffect(() => {
     if (!started) return;
@@ -139,19 +112,29 @@ export default function ReflectionScreen() {
         </View>
 
         <View style={styles.timerContainer}>
-          <TimerCircle timeLeft={timeLeft} totalTime={TOTAL_SECONDS} size={240} />
+          <TimerCircle
+            timeLeft={timeLeft}
+            totalTime={TOTAL_SECONDS}
+            started={started}
+            size={240}
+          />
         </View>
 
         <View style={styles.footer}>
           {!started && !isComplete && (
-            <Pressable
-              onPress={startTimer}
-              style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-            >
-              <Text style={[styles.primaryBtnText, { color: colors.primaryForeground }]}>
-                Start Timer
+            <View style={styles.preStartContent}>
+              <Text style={[styles.eyesHint, { color: colors.mutedForeground }]}>
+                Close your eyes once the timer begins
               </Text>
-            </Pressable>
+              <Pressable
+                onPress={startTimer}
+                style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+              >
+                <Text style={[styles.primaryBtnText, { color: colors.primaryForeground }]}>
+                  Start Timer
+                </Text>
+              </Pressable>
+            </View>
           )}
 
           {started && !isComplete && (
@@ -234,6 +217,18 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: 16,
     alignItems: "center",
+  },
+  preStartContent: {
+    width: "100%",
+    gap: 14,
+    alignItems: "center",
+  },
+  eyesHint: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    fontStyle: "italic",
+    letterSpacing: 0.3,
   },
   primaryBtn: {
     width: "100%",
