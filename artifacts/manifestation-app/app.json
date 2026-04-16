@@ -14,9 +14,21 @@
       "backgroundColor": "#0D0B1A"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.manifestation.companion",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "We send you gentle reminders for your morning, afternoon, and evening manifestation sessions."
+      }
     },
-    "android": {},
+    "android": {
+      "package": "com.manifestation.companion",
+      "versionCode": 1,
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM"
+      ]
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
