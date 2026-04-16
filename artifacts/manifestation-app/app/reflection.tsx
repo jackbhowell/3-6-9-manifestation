@@ -19,11 +19,13 @@ import { useColors } from "@/hooks/useColors";
 const TOTAL_SECONDS = 60;
 
 const chimeSource = require("@/assets/sounds/chime.wav");
+const heartbeatSource = require("@/assets/sounds/heartbeat.wav");
 
-// ─── Heartbeat synthesizer ────────────────────────────────────────────────────
+// ─── Heartbeat synthesizer (web only) ─────────────────────────────────────────
 // Slow meditative heartbeat (~52 bpm) using Web Audio API.
 // Each beat is a lub-dub pair: two short sine+harmonic pulses shaped with a
 // fast attack and exponential decay so they thump clearly on laptop speakers.
+// On native platforms, expo-audio plays the pre-generated heartbeat.wav instead.
 function createHeartbeatScheduler(ctx: AudioContext) {
   const bpm = 52;
   const period = 60 / bpm; // ~1.15 s per beat
@@ -91,6 +93,9 @@ export default function ReflectionScreen() {
   const { session } = useLocalSearchParams<{ session: string }>();
 
   const player = useAudioPlayer(chimeSource);
+  // Native heartbeat player — always created so hook rules are satisfied,
+  // but only used when Platform.OS !== 'web'
+  const heartbeatPlayer = useAudioPlayer(heartbeatSource);
   const heartbeatCtxRef = useRef<AudioContext | null>(null);
   const stopHeartbeatRef = useRef<(() => void) | null>(null);
 
@@ -102,16 +107,36 @@ export default function ReflectionScreen() {
   // Tear down heartbeat when component unmounts
   useEffect(() => {
     return () => {
-      stopHeartbeatRef.current?.();
-      heartbeatCtxRef.current?.close();
+      if (Platform.OS !== "web") {
+        try {
+          heartbeatPlayer.pause();
+          heartbeatPlayer.loop = false;
+          heartbeatPlayer.seekTo(0);
+        } catch {}
+      } else {
+        stopHeartbeatRef.current?.();
+        heartbeatCtxRef.current?.close();
+      }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const stopHeartbeat = useCallback(() => {
+    if (Platform.OS !== "web") {
+      try {
+        heartbeatPlayer.pause();
+        heartbeatPlayer.loop = false;
+        heartbeatPlayer.seekTo(0);
+      } catch {}
+    } else {
+      stopHeartbeatRef.current?.();
+      heartbeatCtxRef.current?.close().catch(() => {});
+      heartbeatCtxRef.current = null;
+    }
+  }, [heartbeatPlayer]);
+
   const handleComplete = useCallback(async () => {
-    // Stop heartbeat
-    stopHeartbeatRef.current?.();
-    heartbeatCtxRef.current?.close().catch(() => {});
-    heartbeatCtxRef.current = null;
+    stopHeartbeat();
 
     setIsComplete(true);
 
@@ -129,7 +154,7 @@ export default function ReflectionScreen() {
       } catch {
       }
     }
-  }, [player]);
+  }, [player, stopHeartbeat]);
 
   useEffect(() => {
     if (!started) return;
@@ -149,32 +174,42 @@ export default function ReflectionScreen() {
   }, [started, handleComplete]);
 
   function startTimer() {
-    // Start heartbeat via Web Audio API (web-only — native uses expo-audio)
-    try {
-      if (typeof window !== "undefined") {
-        const win = window as unknown as Record<string, unknown>;
-        const AudioCtxCtor = (win.AudioContext ?? win.webkitAudioContext) as
-          | (new () => AudioContext)
-          | undefined;
-        if (AudioCtxCtor) {
-          const ctx = new AudioCtxCtor();
-          // Chrome may suspend AudioContext even after user gesture — resume it
-          if (ctx.state === "suspended") {
-            ctx.resume().catch(() => {});
-          }
-          heartbeatCtxRef.current = ctx;
-          stopHeartbeatRef.current = createHeartbeatScheduler(ctx);
-        }
+    if (Platform.OS !== "web") {
+      // Native: use expo-audio to loop the pre-generated heartbeat file
+      try {
+        heartbeatPlayer.loop = true;
+        heartbeatPlayer.seekTo(0);
+        heartbeatPlayer.play();
+      } catch {
+        // Audio not supported — silently skip
       }
-    } catch {
-      // Audio not supported — silently skip
+    } else {
+      // Web: synthesize via Web Audio API
+      try {
+        if (typeof window !== "undefined") {
+          const win = window as unknown as Record<string, unknown>;
+          const AudioCtxCtor = (win.AudioContext ?? win.webkitAudioContext) as
+            | (new () => AudioContext)
+            | undefined;
+          if (AudioCtxCtor) {
+            const ctx = new AudioCtxCtor();
+            // Chrome may suspend AudioContext even after user gesture — resume it
+            if (ctx.state === "suspended") {
+              ctx.resume().catch(() => {});
+            }
+            heartbeatCtxRef.current = ctx;
+            stopHeartbeatRef.current = createHeartbeatScheduler(ctx);
+          }
+        }
+      } catch {
+        // Audio not supported — silently skip
+      }
     }
     setStarted(true);
   }
 
   function handleDone() {
-    stopHeartbeatRef.current?.();
-    heartbeatCtxRef.current?.close().catch(() => {});
+    stopHeartbeat();
     router.replace("/(tabs)");
   }
 
