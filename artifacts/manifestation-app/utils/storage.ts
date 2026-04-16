@@ -110,13 +110,6 @@ export async function saveSession(
     throw new Error(`Session '${session}' is already completed for day ${dayNumber}.`);
   }
 
-  if (session === "afternoon" && !day.completionStatus.morning) {
-    throw new Error("Morning session must be completed before afternoon.");
-  }
-  if (session === "evening" && (!day.completionStatus.morning || !day.completionStatus.afternoon)) {
-    throw new Error("Morning and afternoon sessions must be completed before evening.");
-  }
-
   day.sessions[session] = affirmations;
   day.completionStatus[session] = true;
   await saveDayProgress(dayNumber, day);
