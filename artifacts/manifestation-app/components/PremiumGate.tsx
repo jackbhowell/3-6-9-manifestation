@@ -91,7 +91,7 @@ export function PremiumGate({ children }: PremiumGateProps) {
         >
           <Feather name="unlock" size={18} color={colors.primaryForeground} />
           <Text style={[styles.unlockBtnText, { color: colors.primaryForeground }]}>
-            Unlock Premium — £2.99
+            Unlock Inspire — £2.99
           </Text>
         </Pressable>
 
