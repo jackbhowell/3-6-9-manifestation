@@ -215,6 +215,9 @@ importers:
 
   artifacts/manifestation-app:
     dependencies:
+      '@expo-google-fonts/dancing-script':
+        specifier: ^0.4.2
+        version: 0.4.2
       expo-audio:
         specifier: ^1.1.1
         version: 1.1.1(expo-asset@12.0.12(expo@54.0.33)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3))(expo@54.0.33)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -1132,6 +1135,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [linux]
+
+  '@expo-google-fonts/dancing-script@0.4.2':
+    resolution: {integrity: sha512-5ASbxOM81Xm6nR9I0eE//l1PGgHtR4uGyMX3eUIw2Jeh+1LnlkrDPg55qjChGnkFfVwMge31vXEUyOZJiy9rxQ==}
 
   '@expo-google-fonts/inter@0.4.2':
     resolution: {integrity: sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ==}
@@ -6423,6 +6429,8 @@ snapshots:
 
   '@esbuild/linux-x64@0.27.3':
     optional: true
+
+  '@expo-google-fonts/dancing-script@0.4.2': {}
 
   '@expo-google-fonts/inter@0.4.2': {}
 

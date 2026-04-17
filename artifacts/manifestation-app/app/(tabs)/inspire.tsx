@@ -21,16 +21,21 @@ import { PremiumGate } from "@/components/PremiumGate";
 import {
   AFFIRMATION_CATEGORIES,
   AffirmationCategory,
+  ALL_MANIFEST_SPARKS,
   ALL_SPARKS,
+  MANIFEST_CATEGORIES,
 } from "@/constants/affirmations";
 import { useColors } from "@/hooks/useColors";
 
 const SHAKE_THRESHOLD = 1.8;
 const SHAKE_COOLDOWN_MS = 1200;
 
-function randomSpark(current: string): string {
-  const pool = ALL_SPARKS.filter((s) => s !== current);
-  return pool[Math.floor(Math.random() * pool.length)];
+type LibraryMode = "affirmation" | "manifest";
+
+function randomFrom(pool: string[], current: string): string {
+  const filtered = pool.filter((s) => s !== current);
+  if (filtered.length === 0) return pool[0];
+  return filtered[Math.floor(Math.random() * filtered.length)];
 }
 
 function CrystalBall({
@@ -45,18 +50,32 @@ function CrystalBall({
   const colors = useColors();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [displayedSpark, setDisplayedSpark] = useState(spark);
+  const wasRevealedRef = useRef(false);
 
   useEffect(() => {
-    if (revealed) {
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(scaleAnim, { toValue: 0.92, duration: 120, useNativeDriver: true }),
-          Animated.spring(scaleAnim, { toValue: 1, friction: 4, useNativeDriver: true }),
-        ]),
-        Animated.timing(opacityAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-      ]).start();
-    } else {
+    const wasRevealed = wasRevealedRef.current;
+    wasRevealedRef.current = revealed;
+
+    if (!revealed) {
       opacityAnim.setValue(0);
+      setDisplayedSpark(spark);
+      return;
+    }
+
+    Animated.sequence([
+      Animated.timing(scaleAnim, { toValue: 0.92, duration: 120, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 4, useNativeDriver: true }),
+    ]).start();
+
+    if (!wasRevealed) {
+      setDisplayedSpark(spark);
+      Animated.timing(opacityAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+    } else {
+      Animated.timing(opacityAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+        setDisplayedSpark(spark);
+        Animated.timing(opacityAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+      });
     }
   }, [revealed, spark]);
 
@@ -66,10 +85,7 @@ function CrystalBall({
         <Animated.View
           style={[
             styles.ballOuter,
-            {
-              transform: [{ scale: scaleAnim }],
-              shadowColor: colors.tint,
-            },
+            { transform: [{ scale: scaleAnim }], shadowColor: colors.tint },
           ]}
         >
           <LinearGradient
@@ -90,7 +106,7 @@ function CrystalBall({
                   style={[styles.sparkText, { color: "#fff", opacity: opacityAnim }]}
                   numberOfLines={4}
                 >
-                  {spark}
+                  {displayedSpark}
                 </Animated.Text>
               ) : (
                 <View style={styles.ballIdle}>
@@ -107,16 +123,15 @@ function CrystalBall({
         <View style={[styles.ballBase, { backgroundColor: colors.card, borderColor: colors.border }]} />
       </Pressable>
 
-      {revealed && (
+      <View style={styles.ballHintArea}>
         <Text style={[styles.shakeAgainHint, { color: colors.mutedForeground }]}>
-          {Platform.OS === "web" ? "Tap the ball for another spark" : "Shake again for another spark"}
+          {revealed
+            ? Platform.OS === "web"
+              ? "Tap the ball for another spark"
+              : "Shake again for another spark"
+            : "Your crystal ball awaits"}
         </Text>
-      )}
-      {!revealed && (
-        <Text style={[styles.shakeAgainHint, { color: colors.mutedForeground }]}>
-          Your crystal ball awaits
-        </Text>
-      )}
+      </View>
     </View>
   );
 }
@@ -162,7 +177,10 @@ function CategoryCard({
               onPress={() => onSelectItem(item)}
               style={[
                 styles.catItem,
-                idx < category.items.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+                idx < category.items.length - 1 && {
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderBottomColor: colors.border,
+                },
               ]}
             >
               <Text style={[styles.catItemText, { color: colors.mutedForeground }]}>
@@ -177,7 +195,7 @@ function CategoryCard({
   );
 }
 
-function AffirmationModal({
+function ItemModal({
   text,
   visible,
   onClose,
@@ -204,10 +222,7 @@ function AffirmationModal({
     >
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable
-          style={[
-            styles.modalCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
+          style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={(e) => e.stopPropagation()}
         >
           <Text style={[styles.modalText, { color: colors.foreground }]}>
@@ -217,7 +232,13 @@ function AffirmationModal({
           <View style={styles.modalActions}>
             <Pressable
               onPress={handleCopy}
-              style={[styles.modalBtn, { backgroundColor: copied ? colors.success + "22" : colors.secondary, borderColor: copied ? colors.success : colors.border }]}
+              style={[
+                styles.modalBtn,
+                {
+                  backgroundColor: copied ? colors.success + "22" : colors.secondary,
+                  borderColor: copied ? colors.success : colors.border,
+                },
+              ]}
             >
               <Feather
                 name={copied ? "check" : "copy"}
@@ -249,17 +270,29 @@ export default function InspireScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
+  const [mode, setMode] = useState<LibraryMode>("affirmation");
   const [spark, setSpark] = useState(ALL_SPARKS[0]);
   const [revealed, setRevealed] = useState(false);
-  const [selectedAffirmation, setSelectedAffirmation] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const lastShakeRef = useRef(0);
+
+  const activePool = mode === "affirmation" ? ALL_SPARKS : ALL_MANIFEST_SPARKS;
+  const activeCategories = mode === "affirmation" ? AFFIRMATION_CATEGORIES : MANIFEST_CATEGORIES;
+
+  function handleModeChange(next: LibraryMode) {
+    if (next === mode) return;
+    setMode(next);
+    setRevealed(false);
+    setSpark(next === "affirmation" ? ALL_SPARKS[0] : ALL_MANIFEST_SPARKS[0]);
+  }
 
   const triggerShake = useCallback(async () => {
     const now = Date.now();
     if (now - lastShakeRef.current < SHAKE_COOLDOWN_MS) return;
     lastShakeRef.current = now;
 
-    const newSpark = randomSpark(spark);
+    const pool = mode === "affirmation" ? ALL_SPARKS : ALL_MANIFEST_SPARKS;
+    const newSpark = randomFrom(pool, spark);
     setSpark(newSpark);
     setRevealed(true);
 
@@ -268,7 +301,7 @@ export default function InspireScreen() {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch {}
     }
-  }, [spark]);
+  }, [spark, mode]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -295,7 +328,7 @@ export default function InspireScreen() {
             styles.container,
             {
               paddingTop: insets.top + (Platform.OS === "web" ? 80 : 20),
-              paddingBottom: insets.bottom + (Platform.OS === "web" ? 48 : 100),
+              paddingBottom: insets.bottom + (Platform.OS === "web" ? 100 : 160),
             },
           ]}
           showsVerticalScrollIndicator={false}
@@ -318,30 +351,59 @@ export default function InspireScreen() {
             revealed={revealed}
           />
 
+          <View style={[styles.modeToggle, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+            {(["affirmation", "manifest"] as LibraryMode[]).map((m) => {
+              const active = mode === m;
+              return (
+                <Pressable
+                  key={m}
+                  onPress={() => handleModeChange(m)}
+                  style={[
+                    styles.modePill,
+                    active
+                      ? { backgroundColor: colors.primary }
+                      : { backgroundColor: "transparent" },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.modePillText,
+                      { color: active ? colors.primaryForeground : colors.mutedForeground },
+                    ]}
+                  >
+                    {m === "affirmation" ? "Affirmation" : "Manifest"}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-              Affirmation Library
+              {mode === "affirmation" ? "Affirmation Library" : "Manifest Library"}
             </Text>
             <Text style={[styles.sectionSub, { color: colors.mutedForeground }]}>
-              Tap a category to explore. Tap any line for the full view.
+              {mode === "affirmation"
+                ? "Tap a category to explore. Tap any line for the full view."
+                : "Browse short intentions to manifest. Tap any for the full view."}
             </Text>
           </View>
 
           <View style={styles.categories}>
-            {AFFIRMATION_CATEGORIES.map((cat) => (
+            {activeCategories.map((cat) => (
               <CategoryCard
                 key={cat.id}
                 category={cat}
-                onSelectItem={(text) => setSelectedAffirmation(text)}
+                onSelectItem={(text) => setSelectedItem(text)}
               />
             ))}
           </View>
         </ScrollView>
 
-        <AffirmationModal
-          text={selectedAffirmation ?? ""}
-          visible={selectedAffirmation !== null}
-          onClose={() => setSelectedAffirmation(null)}
+        <ItemModal
+          text={selectedItem ?? ""}
+          visible={selectedItem !== null}
+          onClose={() => setSelectedItem(null)}
         />
       </GradientBackground>
     </PremiumGate>
@@ -376,7 +438,7 @@ const styles = StyleSheet.create({
   },
   ballSection: {
     alignItems: "center",
-    gap: 14,
+    gap: 0,
   },
   ballPressable: {
     alignItems: "center",
@@ -427,11 +489,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   sparkText: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    fontFamily: "DancingScript_700Bold",
     textAlign: "center",
-    lineHeight: 20,
-    letterSpacing: 0.3,
+    lineHeight: 22,
+    letterSpacing: 0.2,
   },
   ballGlow: {
     position: "absolute",
@@ -448,11 +510,34 @@ const styles = StyleSheet.create({
     marginTop: 4,
     opacity: 0.5,
   },
+  ballHintArea: {
+    marginTop: 20,
+    minHeight: 20,
+    alignItems: "center",
+  },
   shakeAgainHint: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     letterSpacing: 0.5,
     fontStyle: "italic",
+  },
+  modeToggle: {
+    flexDirection: "row",
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 4,
+    gap: 4,
+  },
+  modePill: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  modePillText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.2,
   },
   sectionHeader: {
     gap: 4,
