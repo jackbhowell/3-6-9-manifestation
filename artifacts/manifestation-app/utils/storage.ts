@@ -1,5 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { ThemeName } from "@/constants/colors";
+
 export type CompletionSound = "chime" | "bell" | "singing-bowl";
 
 export interface UserSettings {
@@ -14,6 +16,7 @@ export interface UserSettings {
   };
   notificationsEnabled?: boolean;
   completionSound?: CompletionSound;
+  selectedTheme?: ThemeName;
 }
 
 export interface SessionData {

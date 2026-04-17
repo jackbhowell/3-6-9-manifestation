@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 
+import { ThemeName } from "@/constants/colors";
 import {
   ArchivedJourney,
   DayProgress,
@@ -42,6 +43,7 @@ interface AppContextType {
   streak: number;
   isLoading: boolean;
   isPremium: boolean;
+  selectedTheme: ThemeName;
   manifestItems: ManifestItem[];
   archivedJourneys: ArchivedJourney[];
   completeOnboarding: (s: UserSettings) => Promise<void>;
@@ -59,9 +61,10 @@ interface AppContextType {
   deleteCurrentJourney: () => Promise<void>;
   startNewJourney: (s: UserSettings) => Promise<void>;
   unlockPremium: () => Promise<void>;
+  setTheme: (theme: ThemeName) => Promise<void>;
 }
 
-const AppContext = createContext<AppContextType | null>(null);
+export const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -71,6 +74,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [streak, setStreak] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isPremium, setIsPremium] = useState<boolean>(false);
+  const [selectedTheme, setSelectedTheme] = useState<ThemeName>("indigo");
   const [manifestItems, setManifestItems] = useState<ManifestItem[]>([]);
   const [archivedJourneys, setArchivedJourneys] = useState<ArchivedJourney[]>([]);
 
@@ -83,6 +87,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setSettings(s);
+    if (s.selectedTheme) setSelectedTheme(s.selectedTheme);
     const day = getCurrentDay(s.startDate, s.cycleLength);
     setCurrentDay(day);
     const all = await loadAllProgress();
@@ -261,6 +266,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsPremium(true);
   }, []);
 
+  const setTheme = useCallback(
+    async (theme: ThemeName) => {
+      if (!settings) return;
+      const updated = { ...settings, selectedTheme: theme };
+      await saveSettings(updated);
+      setSettings(updated);
+      setSelectedTheme(theme);
+    },
+    [settings]
+  );
+
   const startNewJourney = useCallback(
     async (s: UserSettings) => {
       if (settings && Object.keys(allProgress).length > 0) {
@@ -312,6 +328,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         streak,
         isLoading,
         isPremium,
+        selectedTheme,
         manifestItems,
         archivedJourneys,
         completeOnboarding,
@@ -326,6 +343,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deleteCurrentJourney,
         startNewJourney,
         unlockPremium,
+        setTheme,
       }}
     >
       {children}

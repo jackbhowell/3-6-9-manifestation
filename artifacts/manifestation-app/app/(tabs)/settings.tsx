@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -15,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GradientBackground } from "@/components/GradientBackground";
 import { TimePicker } from "@/components/TimePicker";
+import { THEME_META, ThemeName } from "@/constants/colors";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { validateNotificationTimes } from "@/utils/notifications";
@@ -34,10 +37,13 @@ const soundSources: Record<CompletionSound, number> = {
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
+const THEME_ORDER: ThemeName[] = ["indigo", "rose-gold", "forest", "celestial-gold"];
+
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { settings, updateSettings, refreshProgress } = useApp();
+  const router = useRouter();
+  const { settings, updateSettings, refreshProgress, isPremium, selectedTheme, setTheme } = useApp();
 
   const [morning, setMorning] = useState(settings?.notificationTimes.morning ?? "08:00");
   const [afternoon, setAfternoon] = useState(settings?.notificationTimes.afternoon ?? "13:00");
@@ -245,6 +251,85 @@ export default function SettingsScreen() {
                       <Feather name="check" size={16} color={colors.primary} />
                     )}
                   </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.cardHeader}>
+            <Feather name="droplet" size={18} color={colors.primary} />
+            <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+              Colour Theme
+            </Text>
+          </View>
+          <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+            Personalise the app's colours. Premium themes unlock with Inspire.
+          </Text>
+          <View style={styles.themeGrid}>
+            {THEME_ORDER.map((name) => {
+              const meta = THEME_META[name];
+              const isActive = selectedTheme === name;
+              const locked = name !== "indigo" && !isPremium;
+              return (
+                <Pressable
+                  key={name}
+                  onPress={() => {
+                    if (locked) {
+                      Alert.alert(
+                        "Premium Theme",
+                        "Unlock Inspire to access colour themes.",
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          {
+                            text: "Go to Inspire",
+                            onPress: () => router.push("/(tabs)/inspire"),
+                          },
+                        ]
+                      );
+                      return;
+                    }
+                    setTheme(name);
+                    if (Platform.OS !== "web") {
+                      Haptics.selectionAsync();
+                    }
+                  }}
+                  style={[
+                    styles.themeChip,
+                    {
+                      borderColor: isActive ? meta.swatch : colors.border,
+                      backgroundColor: isActive ? meta.swatch + "18" : colors.secondary,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.themeSwatch,
+                      {
+                        backgroundColor: meta.swatch,
+                        borderWidth: isActive ? 2 : 0,
+                        borderColor: colors.foreground,
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.themeChipLabel,
+                      {
+                        color: isActive ? colors.foreground : colors.mutedForeground,
+                        fontFamily: isActive ? "Inter_600SemiBold" : "Inter_400Regular",
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {meta.label}
+                  </Text>
+                  {locked ? (
+                    <Feather name="lock" size={13} color={colors.mutedForeground} />
+                  ) : isActive ? (
+                    <Feather name="check" size={14} color={meta.swatch} />
+                  ) : null}
                 </Pressable>
               );
             })}
@@ -478,5 +563,27 @@ const styles = StyleSheet.create({
   saveBtnText: {
     fontSize: 16,
     fontFamily: "Inter_600SemiBold",
+  },
+  themeGrid: {
+    gap: 8,
+    marginTop: 4,
+  },
+  themeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  themeSwatch: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  themeChipLabel: {
+    flex: 1,
+    fontSize: 15,
   },
 });
