@@ -373,6 +373,7 @@ export default function AffirmationScreen() {
                       inputs.current[i + 1]?.focus();
                     }
                   }}
+                  contextMenuHidden={i > 0}
                   style={[
                     styles.textInput,
                     {

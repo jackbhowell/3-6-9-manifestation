@@ -14,6 +14,7 @@ import {
   Text,
   View,
 } from "react-native";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GradientBackground } from "@/components/GradientBackground";
@@ -38,6 +39,52 @@ function randomFrom(pool: string[], current: string): string {
   return filtered[Math.floor(Math.random() * filtered.length)];
 }
 
+function SparkLetters({
+  text,
+  onAnimsReady,
+}: {
+  text: string;
+  onAnimsReady: (anims: Animated.Value[]) => void;
+}) {
+  const words = text.split(" ");
+  const letters = words.join("").split("");
+  const anims = useRef(letters.map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    onAnimsReady(anims);
+    const indices = letters.map((_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    const animations = indices.map((idx, order) =>
+      Animated.sequence([
+        Animated.delay(order * 35),
+        Animated.timing(anims[idx], { toValue: 1, duration: 200, useNativeDriver: true }),
+      ])
+    );
+    Animated.parallel(animations).start();
+  }, []);
+
+  let letterIdx = 0;
+  return (
+    <View style={styles.sparkLettersRow}>
+      {words.map((word, wi) => (
+        <View key={wi} style={{ flexDirection: "row" }}>
+          {word.split("").map((char) => {
+            const idx = letterIdx++;
+            return (
+              <Animated.Text key={idx} style={[styles.sparkText, { opacity: anims[idx] }]}>
+                {char}
+              </Animated.Text>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function CrystalBall({
   onShake,
   spark,
@@ -49,7 +96,7 @@ function CrystalBall({
 }) {
   const colors = useColors();
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const letterAnimsRef = useRef<Animated.Value[]>([]);
   const [displayedSpark, setDisplayedSpark] = useState(spark);
   const wasRevealedRef = useRef(false);
 
@@ -58,7 +105,6 @@ function CrystalBall({
     wasRevealedRef.current = revealed;
 
     if (!revealed) {
-      opacityAnim.setValue(0);
       setDisplayedSpark(spark);
       return;
     }
@@ -70,11 +116,14 @@ function CrystalBall({
 
     if (!wasRevealed) {
       setDisplayedSpark(spark);
-      Animated.timing(opacityAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
     } else {
-      Animated.timing(opacityAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+      const currentAnims = letterAnimsRef.current;
+      Animated.parallel(
+        currentAnims.map((a) =>
+          Animated.timing(a, { toValue: 0, duration: 150, useNativeDriver: true })
+        )
+      ).start(() => {
         setDisplayedSpark(spark);
-        Animated.timing(opacityAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
       });
     }
   }, [revealed, spark]);
@@ -102,12 +151,11 @@ function CrystalBall({
                 end={{ x: 1, y: 1 }}
               />
               {revealed ? (
-                <Animated.Text
-                  style={[styles.sparkText, { color: "#fff", opacity: opacityAnim }]}
-                  numberOfLines={4}
-                >
-                  {displayedSpark}
-                </Animated.Text>
+                <SparkLetters
+                  key={displayedSpark}
+                  text={displayedSpark}
+                  onAnimsReady={(anims) => { letterAnimsRef.current = anims; }}
+                />
               ) : (
                 <View style={styles.ballIdle}>
                   <Text style={styles.ballEmoji}>✦</Text>
@@ -488,12 +536,19 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: 0.5,
   },
+  sparkLettersRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 4,
+  },
   sparkText: {
-    fontSize: 15,
-    fontFamily: "DancingScript_700Bold",
-    textAlign: "center",
-    lineHeight: 22,
-    letterSpacing: 0.2,
+    fontSize: 17,
+    fontFamily: "Inter_600SemiBold",
+    fontStyle: "italic",
+    color: "#fff",
+    lineHeight: 24,
   },
   ballGlow: {
     position: "absolute",
@@ -511,7 +566,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   ballHintArea: {
-    marginTop: 20,
+    marginTop: 32,
     minHeight: 20,
     alignItems: "center",
   },
