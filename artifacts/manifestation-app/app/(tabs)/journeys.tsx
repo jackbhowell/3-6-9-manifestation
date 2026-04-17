@@ -324,7 +324,10 @@ export default function JourneysScreen() {
                       </Text>
                     ) : null}
                     <Pressable
-                      onPress={() => confirmDelete(journey)}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        confirmDelete(journey);
+                      }}
                       style={[styles.deleteBtn, { borderColor: colors.border }]}
                       hitSlop={4}
                     >
