@@ -179,25 +179,27 @@ export default function JourneyDetailScreen() {
               <SessionDot done={m} label="3" color={colors.morning} colors={colors} />
               <SessionDot done={a} label="6" color={colors.afternoon} colors={colors} />
               <SessionDot done={e} label="9" color={colors.evening} colors={colors} />
-              {isPremium ? (
-                <Feather
-                  name="chevron-right"
-                  size={18}
-                  color={colors.mutedForeground}
-                  style={styles.rowEnd}
-                />
-              ) : hasAny ? (
-                <Feather
-                  name="lock"
-                  size={15}
-                  color={colors.mutedForeground}
-                  style={styles.rowEnd}
-                />
+              {hasAny ? (
+                isPremium ? (
+                  <Feather
+                    name="chevron-right"
+                    size={18}
+                    color={colors.mutedForeground}
+                    style={styles.rowEnd}
+                  />
+                ) : (
+                  <Feather
+                    name="lock"
+                    size={15}
+                    color={colors.mutedForeground}
+                    style={styles.rowEnd}
+                  />
+                )
               ) : null}
             </View>
           );
 
-          if (isPremium) {
+          if (isPremium && hasAny) {
             return (
               <Pressable
                 onPress={() =>

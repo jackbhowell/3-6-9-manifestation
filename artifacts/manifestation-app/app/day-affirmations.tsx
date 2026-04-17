@@ -30,7 +30,7 @@ export default function DayAffirmationsScreen() {
     journeyId: string;
     day: string;
   }>();
-  const { allProgress, archivedJourneys, settings } = useApp();
+  const { allProgress, archivedJourneys, settings, isPremium } = useApp();
 
   const dayNum = parseInt(day ?? "1", 10);
 
@@ -41,6 +41,27 @@ export default function DayAffirmationsScreen() {
     const journey = archivedJourneys.find((j) => j.id === journeyId);
     dayProgress = journey?.progress[dayNum] ?? null;
     journeyName = journey?.name || "Journey";
+  }
+
+  if (!isPremium) {
+    return (
+      <GradientBackground>
+        <View style={styles.premiumGate}>
+          <Feather name="lock" size={32} color={colors.mutedForeground} />
+          <Text style={[styles.gateTitle, { color: colors.foreground }]}>
+            Premium Feature
+          </Text>
+          <Text style={[styles.gateBody, { color: colors.mutedForeground }]}>
+            Unlock Premium to read your past affirmations.
+          </Text>
+          <Pressable onPress={() => router.back()} hitSlop={8}>
+            <Text style={[styles.gateBack, { color: colors.primary }]}>
+              Go Back
+            </Text>
+          </Pressable>
+        </View>
+      </GradientBackground>
+    );
   }
 
   const sessions = dayProgress?.sessions;
@@ -227,6 +248,29 @@ export default function DayAffirmationsScreen() {
 }
 
 const styles = StyleSheet.create({
+  premiumGate: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+    gap: 16,
+  },
+  gateTitle: {
+    fontSize: 20,
+    fontFamily: "Inter_600SemiBold",
+    textAlign: "center",
+  },
+  gateBody: {
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  gateBack: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    marginTop: 8,
+  },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 20,
