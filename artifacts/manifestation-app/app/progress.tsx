@@ -41,7 +41,7 @@ function DayItem({
   const isToday = dayNumber === currentDay;
   const allDone = morning && afternoon && evening;
   const hasAny = morning || afternoon || evening;
-  const isTappable = isPremium && !isFuture && hasAny;
+  const isTappable = isPremium && !isFuture;
 
   const card = (
     <View
@@ -83,6 +83,8 @@ function DayItem({
 
       {isTappable ? (
         <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+      ) : !isPremium && hasAny && !isFuture ? (
+        <Feather name="lock" size={15} color={colors.mutedForeground} />
       ) : allDone ? (
         <Feather name="check-circle" size={18} color={colors.success} />
       ) : hasAny && !isFuture ? (
@@ -138,7 +140,7 @@ function SessionDot({
 export default function ProgressScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { settings, currentDay, allProgress, isPremium } = useApp();
+  const { settings, currentDay, allProgress, isPremium, unlockPremium } = useApp();
 
   if (!settings) {
     return (
@@ -218,8 +220,13 @@ export default function ProgressScreen() {
           <View style={[styles.archiveBanner, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
             <Feather name="lock" size={13} color={colors.mutedForeground} />
             <Text style={[styles.archiveBannerText, { color: colors.mutedForeground }]}>
-              Unlock Premium to read every affirmation you've written
+              Unlock Archive to read every affirmation you've written
             </Text>
+            <Pressable onPress={unlockPremium} hitSlop={8}>
+              <Text style={[styles.archiveBannerCta, { color: colors.primary }]}>
+                Unlock
+              </Text>
+            </Pressable>
           </View>
         )}
 
@@ -354,6 +361,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     flex: 1,
+  },
+  archiveBannerCta: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
   },
   legend: {
     flexDirection: "row",

@@ -20,7 +20,7 @@ export default function JourneyDetailScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { journeyId } = useLocalSearchParams<{ journeyId: string }>();
-  const { archivedJourneys, isPremium } = useApp();
+  const { archivedJourneys, isPremium, unlockPremium } = useApp();
 
   const journey: ArchivedJourney | undefined = archivedJourneys.find(
     (j) => j.id === journeyId
@@ -138,8 +138,13 @@ export default function JourneyDetailScreen() {
                 <Text
                   style={[styles.archiveBannerText, { color: colors.mutedForeground }]}
                 >
-                  Unlock Premium to read every affirmation you've written
+                  Unlock Archive to read every affirmation you've written
                 </Text>
+                <Pressable onPress={unlockPremium} hitSlop={8}>
+                  <Text style={[styles.archiveBannerCta, { color: colors.primary }]}>
+                    Unlock
+                  </Text>
+                </Pressable>
               </View>
             )}
 
@@ -155,7 +160,6 @@ export default function JourneyDetailScreen() {
           const e = day?.completionStatus.evening ?? false;
           const allDone = m && a && e;
           const hasAny = m || a || e;
-          const isTappable = isPremium && hasAny;
 
           const rowContent = (
             <View
@@ -175,25 +179,25 @@ export default function JourneyDetailScreen() {
               <SessionDot done={m} label="3" color={colors.morning} colors={colors} />
               <SessionDot done={a} label="6" color={colors.afternoon} colors={colors} />
               <SessionDot done={e} label="9" color={colors.evening} colors={colors} />
-              {isTappable ? (
+              {isPremium ? (
                 <Feather
                   name="chevron-right"
                   size={18}
                   color={colors.mutedForeground}
-                  style={styles.rowChevron}
+                  style={styles.rowEnd}
                 />
-              ) : allDone ? (
+              ) : hasAny ? (
                 <Feather
-                  name="check-circle"
-                  size={18}
-                  color={colors.primary}
-                  style={styles.rowChevron}
+                  name="lock"
+                  size={15}
+                  color={colors.mutedForeground}
+                  style={styles.rowEnd}
                 />
               ) : null}
             </View>
           );
 
-          if (isTappable) {
+          if (isPremium) {
             return (
               <Pressable
                 onPress={() =>
@@ -355,6 +359,10 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     flex: 1,
   },
+  archiveBannerCta: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
   sectionLabel: {
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
@@ -389,7 +397,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_700Bold",
   },
-  rowChevron: {
+  rowEnd: {
     marginLeft: "auto",
   },
 });
