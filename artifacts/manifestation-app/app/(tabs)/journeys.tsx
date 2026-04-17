@@ -222,6 +222,16 @@ export default function JourneysScreen() {
               </View>
             </Pressable>
             <Pressable
+              onPress={() => router.push("/progress")}
+              style={[styles.viewProgressBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+            >
+              <Feather name="bar-chart-2" size={14} color={colors.primary} />
+              <Text style={[styles.viewProgressText, { color: colors.primary }]}>
+                View Progress
+              </Text>
+              <Feather name="chevron-right" size={14} color={colors.mutedForeground} style={{ marginLeft: "auto" }} />
+            </Pressable>
+            <Pressable
               onPress={confirmDeleteCurrent}
               style={[styles.deleteCurrentBtn, { borderColor: colors.border }]}
             >
@@ -256,14 +266,20 @@ export default function JourneysScreen() {
                   year: "numeric",
                 });
                 return (
-                  <View
+                  <Pressable
                     key={journey.id}
-                    style={[
+                    onPress={() =>
+                      router.push({
+                        pathname: "/journey-detail",
+                        params: { journeyId: journey.id },
+                      })
+                    }
+                    style={({ pressed }) => [
                       styles.archivedCard,
                       {
                         backgroundColor: colors.card,
                         borderColor: fullyDone ? colors.primary : colors.border,
-                        opacity: fullyDone ? 0.55 : 0.9,
+                        opacity: pressed ? 0.65 : fullyDone ? 0.55 : 0.9,
                       },
                     ]}
                   >
@@ -317,7 +333,7 @@ export default function JourneysScreen() {
                         Delete
                       </Text>
                     </Pressable>
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -461,6 +477,21 @@ const styles = StyleSheet.create({
   chipLabel: {
     fontSize: 11,
     fontFamily: "Inter_400Regular",
+  },
+  viewProgressBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    marginTop: -8,
+  },
+  viewProgressText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    flex: 1,
   },
   deleteCurrentBtn: {
     flexDirection: "row",
