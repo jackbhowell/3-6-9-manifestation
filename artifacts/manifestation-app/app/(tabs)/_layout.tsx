@@ -88,6 +88,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="inspire"
+        options={{
+          title: "Inspire",
+          tabBarIcon: ({ color }) => <TabIcon name="star" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="learn"
         options={{
           title: "Learn",

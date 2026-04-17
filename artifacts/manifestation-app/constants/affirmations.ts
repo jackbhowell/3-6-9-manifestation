@@ -1,0 +1,122 @@
+export interface AffirmationCategory {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+  items: string[];
+}
+
+export const AFFIRMATION_CATEGORIES: AffirmationCategory[] = [
+  {
+    id: "love",
+    label: "Love & Relationships",
+    icon: "heart",
+    color: "#F472B6",
+    items: [
+      "I am worthy of deep, genuine love",
+      "Love flows to me effortlessly and naturally",
+      "I attract relationships that honour and uplift me",
+      "My heart is open and ready to give and receive love",
+      "I radiate warmth that draws loving people into my life",
+      "I am deserving of a relationship built on trust and respect",
+      "The love I seek is also seeking me",
+      "I release past hurt and welcome fresh connection",
+      "My presence creates safety and warmth for those around me",
+      "Love is my natural state — I return to it always",
+      "I am magnetic to kind, authentic souls",
+      "Every day I grow closer to the love I desire",
+    ],
+  },
+  {
+    id: "abundance",
+    label: "Abundance & Wealth",
+    icon: "star",
+    color: "#FBBF24",
+    items: [
+      "Abundance flows to me from expected and unexpected sources",
+      "I am a magnet for financial opportunities",
+      "Money comes to me easily and I use it wisely",
+      "I am open to receiving wealth beyond what I can currently imagine",
+      "My income expands as I grow",
+      "I release all limiting beliefs about money",
+      "The universe provides for me in ways I trust completely",
+      "Prosperity is my birthright and I claim it now",
+      "I am grateful for the wealth already present in my life",
+      "Every action I take moves me closer to financial freedom",
+      "Abundance in all forms is drawn to my energy",
+      "I deserve to live a life of ease and plenty",
+    ],
+  },
+  {
+    id: "health",
+    label: "Health & Vitality",
+    icon: "activity",
+    color: "#34D399",
+    items: [
+      "My body is a vessel of strength, health and energy",
+      "Every cell in my body is vibrating with vitality",
+      "I nourish myself with choices that honour my wellbeing",
+      "I am grateful for a body that carries me through life",
+      "Healing flows through me naturally and completely",
+      "I trust my body's innate wisdom",
+      "Each day I grow stronger, healthier and more alive",
+      "I release tension and invite deep peace into my body",
+      "My mind and body are in perfect harmony",
+      "I am becoming the healthiest version of myself",
+      "Vibrant health is my natural state",
+      "I give myself full permission to rest, restore and thrive",
+    ],
+  },
+  {
+    id: "confidence",
+    label: "Confidence & Self-Worth",
+    icon: "shield",
+    color: "#A78BFA",
+    items: [
+      "I trust myself completely and fully",
+      "I am enough, exactly as I am, right now",
+      "My voice matters and I speak with calm authority",
+      "I walk into every room knowing I belong there",
+      "I embrace my unique gifts and share them freely",
+      "I release the need for others' approval",
+      "Confidence is my natural expression",
+      "I am proud of how far I have come",
+      "I face challenges knowing I have what it takes",
+      "My self-worth does not depend on achievement or opinion",
+      "I honour my boundaries and hold them with ease",
+      "Every day I become more at home in who I am",
+    ],
+  },
+  {
+    id: "purpose",
+    label: "Purpose & Growth",
+    icon: "compass",
+    color: "#60A5FA",
+    items: [
+      "I am aligned with my highest purpose",
+      "The work I do creates meaningful change in the world",
+      "I am always moving in the direction of my dreams",
+      "Every experience is guiding me exactly where I need to be",
+      "I am open to the next level of my potential",
+      "My dreams are valid and worth pursuing with full commitment",
+      "I grow through every challenge I face",
+      "The universe conspires in my favour",
+      "I have a unique contribution that only I can offer",
+      "I am becoming who I was always meant to be",
+      "Clarity comes to me when I listen in stillness",
+      "My path unfolds with perfect timing",
+    ],
+  },
+];
+
+export const ALL_SPARKS: string[] = [
+  ...AFFIRMATION_CATEGORIES.flatMap((c) => c.items.slice(0, 8)),
+  "I attract what I think about most",
+  "Today I choose expansion over fear",
+  "Everything I need is already within me",
+  "I am ready to receive my desires",
+  "The universe hears every intention I set",
+  "I live in a state of joyful expectation",
+  "My thoughts create my reality — I choose wisely",
+  "I am exactly where I need to be right now",
+];

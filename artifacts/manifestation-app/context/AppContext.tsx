@@ -20,8 +20,10 @@ import {
   loadArchivedJourneys,
   loadDayProgress,
   loadManifestItems,
+  loadPremium,
   loadSettings,
   saveManifestItems,
+  savePremium,
   saveSession,
   saveSettings,
   setOnboarded,
@@ -39,6 +41,7 @@ interface AppContextType {
   allProgress: Record<number, DayProgress>;
   streak: number;
   isLoading: boolean;
+  isPremium: boolean;
   manifestItems: ManifestItem[];
   archivedJourneys: ArchivedJourney[];
   completeOnboarding: (s: UserSettings) => Promise<void>;
@@ -55,6 +58,7 @@ interface AppContextType {
   deleteArchivedJourney: (id: string) => Promise<void>;
   deleteCurrentJourney: () => Promise<void>;
   startNewJourney: (s: UserSettings) => Promise<void>;
+  unlockPremium: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -66,10 +70,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [allProgress, setAllProgress] = useState<Record<number, DayProgress>>({});
   const [streak, setStreak] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isPremium, setIsPremium] = useState<boolean>(false);
   const [manifestItems, setManifestItems] = useState<ManifestItem[]>([]);
   const [archivedJourneys, setArchivedJourneys] = useState<ArchivedJourney[]>([]);
 
   const refreshProgress = useCallback(async () => {
+    const premium = await loadPremium();
+    setIsPremium(premium);
     const s = await loadSettings();
     if (!s) {
       setIsLoading(false);
@@ -249,6 +256,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
+  const unlockPremium = useCallback(async () => {
+    await savePremium();
+    setIsPremium(true);
+  }, []);
+
   const startNewJourney = useCallback(
     async (s: UserSettings) => {
       if (settings && Object.keys(allProgress).length > 0) {
@@ -299,6 +311,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         allProgress,
         streak,
         isLoading,
+        isPremium,
         manifestItems,
         archivedJourneys,
         completeOnboarding,
@@ -312,6 +325,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deleteArchivedJourney,
         deleteCurrentJourney,
         startNewJourney,
+        unlockPremium,
       }}
     >
       {children}

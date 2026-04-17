@@ -56,6 +56,7 @@ const KEYS = {
   ONBOARDED: "@manifestation/onboarded",
   MANIFEST: "@manifestation/manifest",
   JOURNEYS: "@manifestation/journeys",
+  PREMIUM: "@manifestation/premium",
 };
 
 export async function saveSettings(settings: UserSettings): Promise<void> {
@@ -198,4 +199,13 @@ export async function deleteCurrentJourney(): Promise<void> {
 
 export async function resetAll(): Promise<void> {
   await AsyncStorage.multiRemove([KEYS.SETTINGS, KEYS.PROGRESS, KEYS.ONBOARDED]);
+}
+
+export async function loadPremium(): Promise<boolean> {
+  const val = await AsyncStorage.getItem(KEYS.PREMIUM);
+  return val === "true";
+}
+
+export async function savePremium(): Promise<void> {
+  await AsyncStorage.setItem(KEYS.PREMIUM, "true");
 }
