@@ -4,7 +4,6 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -276,20 +275,7 @@ export default function SettingsScreen() {
                 <Pressable
                   key={name}
                   onPress={() => {
-                    if (locked) {
-                      Alert.alert(
-                        "Premium Theme",
-                        "Unlock Inspire to access colour themes.",
-                        [
-                          { text: "Cancel", style: "cancel" },
-                          {
-                            text: "Go to Inspire",
-                            onPress: () => router.push("/(tabs)/inspire"),
-                          },
-                        ]
-                      );
-                      return;
-                    }
+                    if (locked) return;
                     setTheme(name);
                     if (Platform.OS !== "web") {
                       Haptics.selectionAsync();
@@ -299,7 +285,12 @@ export default function SettingsScreen() {
                     styles.themeChip,
                     {
                       borderColor: isActive ? meta.swatch : colors.border,
-                      backgroundColor: isActive ? meta.swatch + "18" : colors.secondary,
+                      backgroundColor: isActive
+                        ? meta.swatch + "18"
+                        : locked
+                        ? colors.secondary + "80"
+                        : colors.secondary,
+                      opacity: locked ? 0.7 : 1,
                     },
                   ]}
                 >
@@ -334,6 +325,17 @@ export default function SettingsScreen() {
               );
             })}
           </View>
+          {!isPremium && (
+            <Pressable
+              onPress={() => router.push("/(tabs)/inspire")}
+              style={styles.unlockLink}
+            >
+              <Feather name="star" size={13} color={colors.primary} />
+              <Text style={[styles.unlockLinkText, { color: colors.primary }]}>
+                Unlock with Premium — go to Inspire
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -585,5 +587,17 @@ const styles = StyleSheet.create({
   themeChipLabel: {
     flex: 1,
     fontSize: 15,
+  },
+  unlockLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 10,
+    alignSelf: "flex-start",
+  },
+  unlockLinkText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    textDecorationLine: "underline",
   },
 });

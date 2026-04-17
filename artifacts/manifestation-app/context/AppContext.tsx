@@ -138,7 +138,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [refreshProgress]);
 
   const completeOnboarding = useCallback(async (s: UserSettings) => {
-    await saveSettings(s);
+    const withDefaults: UserSettings = {
+      selectedTheme: "indigo",
+      ...s,
+    };
+    await saveSettings(withDefaults);
     await setOnboarded();
     const granted = await requestNotificationPermission();
     if (granted && s.notificationsEnabled !== false) {
@@ -160,8 +164,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setManifestItems([...existingItems, newItem]);
       }
     }
-    setSettings(s);
-    const day = getCurrentDay(s.startDate, s.cycleLength);
+    setSettings(withDefaults);
+    if (withDefaults.selectedTheme) setSelectedTheme(withDefaults.selectedTheme);
+    const day = getCurrentDay(withDefaults.startDate, withDefaults.cycleLength);
     setCurrentDay(day);
     const today = await loadDayProgress(day);
     setTodayProgress(today);
@@ -198,6 +203,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (updated: UserSettings) => {
       await saveSettings(updated);
       setSettings(updated);
+      if (updated.selectedTheme) setSelectedTheme(updated.selectedTheme);
       if (updated.notificationsEnabled === false) {
         await cancelAllNotifications();
       } else {
@@ -279,24 +285,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const startNewJourney = useCallback(
     async (s: UserSettings) => {
+      const withDefaults: UserSettings = { selectedTheme: "indigo", ...s };
       if (settings && Object.keys(allProgress).length > 0) {
         await archiveCurrentJourney(settings, allProgress);
       }
-      await saveSettings(s);
+      await saveSettings(withDefaults);
       await setOnboarded();
       const granted = await requestNotificationPermission();
-      if (granted && s.notificationsEnabled !== false) {
-        await scheduleNotifications(s.notificationTimes);
+      if (granted && withDefaults.notificationsEnabled !== false) {
+        await scheduleNotifications(withDefaults.notificationTimes);
       }
-      if (s.intention && s.intention.trim()) {
+      if (withDefaults.intention && withDefaults.intention.trim()) {
         const existingItems = await loadManifestItems();
         const alreadyExists = existingItems.some(
-          (item) => item.text.trim() === s.intention.trim()
+          (item) => item.text.trim() === withDefaults.intention.trim()
         );
         if (!alreadyExists) {
           const newItem: ManifestItem = {
             id: `manifest-${Date.now()}`,
-            text: s.intention.trim(),
+            text: withDefaults.intention.trim(),
             manifested: false,
             createdAt: new Date().toISOString(),
           };
@@ -304,8 +311,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setManifestItems([...existingItems, newItem]);
         }
       }
-      setSettings(s);
-      const day = getCurrentDay(s.startDate, s.cycleLength);
+      setSettings(withDefaults);
+      if (withDefaults.selectedTheme) setSelectedTheme(withDefaults.selectedTheme);
+      const day = getCurrentDay(withDefaults.startDate, withDefaults.cycleLength);
       setCurrentDay(day);
       const today = await loadDayProgress(day);
       setTodayProgress(today);
