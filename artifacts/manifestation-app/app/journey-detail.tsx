@@ -20,7 +20,7 @@ export default function JourneyDetailScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { journeyId } = useLocalSearchParams<{ journeyId: string }>();
-  const { archivedJourneys } = useApp();
+  const { archivedJourneys, isPremium } = useApp();
 
   const journey: ArchivedJourney | undefined = archivedJourneys.find(
     (j) => j.id === journeyId
@@ -34,7 +34,9 @@ export default function JourneyDetailScreen() {
             Journey not found
           </Text>
           <Pressable onPress={() => router.back()} style={styles.backFallback}>
-            <Text style={[styles.backFallbackText, { color: colors.primary }]}>Go Back</Text>
+            <Text style={[styles.backFallbackText, { color: colors.primary }]}>
+              Go Back
+            </Text>
           </Pressable>
         </View>
       </GradientBackground>
@@ -72,7 +74,6 @@ export default function JourneyDetailScreen() {
     }
   }
   const pct = Math.round((doneSessions / totalSessions) * 100);
-
   const days = Array.from({ length: journey.cycleLength }, (_, i) => i + 1);
 
   return (
@@ -92,7 +93,10 @@ export default function JourneyDetailScreen() {
           <View style={styles.listHeader}>
             <Pressable
               onPress={() => router.back()}
-              style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[
+                styles.backBtn,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
             >
               <Feather name="arrow-left" size={20} color={colors.foreground} />
             </Pressable>
@@ -105,7 +109,9 @@ export default function JourneyDetailScreen() {
                 {startDate} – {endDate}
               </Text>
               {journey.intention ? (
-                <Text style={[styles.intention, { color: colors.mutedForeground }]}>
+                <Text
+                  style={[styles.intention, { color: colors.mutedForeground }]}
+                >
                   "{journey.intention}"
                 </Text>
               ) : null}
@@ -113,9 +119,29 @@ export default function JourneyDetailScreen() {
 
             <View style={styles.statsRow}>
               <StatBox label="Days Done" value={String(completedDays)} colors={colors} />
-              <StatBox label="Sessions" value={`${doneSessions}/${totalSessions}`} colors={colors} />
+              <StatBox
+                label="Sessions"
+                value={`${doneSessions}/${totalSessions}`}
+                colors={colors}
+              />
               <StatBox label="Complete" value={`${pct}%`} colors={colors} />
             </View>
+
+            {!isPremium && (
+              <View
+                style={[
+                  styles.archiveBanner,
+                  { backgroundColor: colors.secondary, borderColor: colors.border },
+                ]}
+              >
+                <Feather name="lock" size={13} color={colors.mutedForeground} />
+                <Text
+                  style={[styles.archiveBannerText, { color: colors.mutedForeground }]}
+                >
+                  Unlock Premium to read every affirmation you've written
+                </Text>
+              </View>
+            )}
 
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
               DAY BY DAY
@@ -128,8 +154,10 @@ export default function JourneyDetailScreen() {
           const a = day?.completionStatus.afternoon ?? false;
           const e = day?.completionStatus.evening ?? false;
           const allDone = m && a && e;
+          const hasAny = m || a || e;
+          const isTappable = isPremium && hasAny;
 
-          return (
+          const rowContent = (
             <View
               style={[
                 styles.dayRow,
@@ -147,11 +175,40 @@ export default function JourneyDetailScreen() {
               <SessionDot done={m} label="3" color={colors.morning} colors={colors} />
               <SessionDot done={a} label="6" color={colors.afternoon} colors={colors} />
               <SessionDot done={e} label="9" color={colors.evening} colors={colors} />
-              {allDone && (
-                <Feather name="check-circle" size={18} color={colors.primary} />
-              )}
+              {isTappable ? (
+                <Feather
+                  name="chevron-right"
+                  size={18}
+                  color={colors.mutedForeground}
+                  style={styles.rowChevron}
+                />
+              ) : allDone ? (
+                <Feather
+                  name="check-circle"
+                  size={18}
+                  color={colors.primary}
+                  style={styles.rowChevron}
+                />
+              ) : null}
             </View>
           );
+
+          if (isTappable) {
+            return (
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: "/day-affirmations",
+                    params: { journeyId: journey.id, day: String(dayNum) },
+                  })
+                }
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              >
+                {rowContent}
+              </Pressable>
+            );
+          }
+          return rowContent;
         }}
         ItemSeparatorComponent={() => <View style={{ height: 6 }} />}
       />
@@ -170,10 +227,15 @@ function StatBox({
 }) {
   return (
     <View
-      style={[styles.statBox, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[
+        styles.statBox,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
     >
       <Text style={[styles.statValue, { color: colors.primary }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{label}</Text>
+      <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -279,6 +341,20 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     textAlign: "center",
   },
+  archiveBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  archiveBannerText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    flex: 1,
+  },
   sectionLabel: {
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
@@ -312,5 +388,8 @@ const styles = StyleSheet.create({
   dotText: {
     fontSize: 12,
     fontFamily: "Inter_700Bold",
+  },
+  rowChevron: {
+    marginLeft: "auto",
   },
 });

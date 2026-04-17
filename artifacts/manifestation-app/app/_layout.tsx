@@ -44,6 +44,8 @@ function RootLayoutNav() {
         <Stack.Screen name="affirmation" options={{ headerShown: false }} />
         <Stack.Screen name="reflection" options={{ headerShown: false }} />
         <Stack.Screen name="progress" options={{ headerShown: false }} />
+        <Stack.Screen name="day-affirmations" options={{ headerShown: false }} />
+        <Stack.Screen name="journey-detail" options={{ headerShown: false }} />
       </Stack>
     </>
   );

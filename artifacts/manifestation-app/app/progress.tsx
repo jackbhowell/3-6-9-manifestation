@@ -22,6 +22,8 @@ interface DayItemProps {
   afternoon: boolean;
   evening: boolean;
   isFuture: boolean;
+  isPremium: boolean;
+  onPress?: () => void;
   colors: ReturnType<typeof useColors>;
 }
 
@@ -32,13 +34,16 @@ function DayItem({
   afternoon,
   evening,
   isFuture,
+  isPremium,
+  onPress,
   colors,
 }: DayItemProps) {
   const isToday = dayNumber === currentDay;
   const allDone = morning && afternoon && evening;
   const hasAny = morning || afternoon || evening;
+  const isTappable = isPremium && !isFuture && hasAny;
 
-  return (
+  const card = (
     <View
       style={[
         styles.dayCard,
@@ -65,12 +70,7 @@ function DayItem({
       </View>
 
       <View style={styles.dayContent}>
-        <Text
-          style={[
-            styles.dayLabel,
-            { color: isToday ? colors.foreground : colors.foreground },
-          ]}
-        >
+        <Text style={[styles.dayLabel, { color: colors.foreground }]}>
           Day {dayNumber}
           {isToday ? "  (Today)" : ""}
         </Text>
@@ -81,18 +81,28 @@ function DayItem({
         </View>
       </View>
 
-      {allDone && (
+      {isTappable ? (
+        <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+      ) : allDone ? (
         <Feather name="check-circle" size={18} color={colors.success} />
-      )}
-      {!allDone && hasAny && !isFuture && (
+      ) : hasAny && !isFuture ? (
         <View style={[styles.partialBadge, { backgroundColor: colors.secondary }]}>
           <Text style={[styles.partialText, { color: colors.mutedForeground }]}>
             {[morning, afternoon, evening].filter(Boolean).length}/3
           </Text>
         </View>
-      )}
+      ) : null}
     </View>
   );
+
+  if (isTappable) {
+    return (
+      <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+        {card}
+      </Pressable>
+    );
+  }
+  return card;
 }
 
 function SessionDot({
@@ -110,9 +120,7 @@ function SessionDot({
     <View
       style={[
         styles.dot,
-        {
-          backgroundColor: completed ? color : colors.border,
-        },
+        { backgroundColor: completed ? color : colors.border },
       ]}
     >
       <Text
@@ -130,7 +138,7 @@ function SessionDot({
 export default function ProgressScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { settings, currentDay, allProgress } = useApp();
+  const { settings, currentDay, allProgress, isPremium } = useApp();
 
   if (!settings) {
     return (
@@ -163,9 +171,7 @@ export default function ProgressScreen() {
       <View
         style={[
           styles.container,
-          {
-            paddingTop: insets.top + (Platform.OS === "web" ? 67 : 0),
-          },
+          { paddingTop: insets.top + (Platform.OS === "web" ? 67 : 0) },
         ]}
       >
         <View style={styles.headerBar}>
@@ -208,6 +214,15 @@ export default function ProgressScreen() {
           </View>
         </View>
 
+        {!isPremium && (
+          <View style={[styles.archiveBanner, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+            <Feather name="lock" size={13} color={colors.mutedForeground} />
+            <Text style={[styles.archiveBannerText, { color: colors.mutedForeground }]}>
+              Unlock Premium to read every affirmation you've written
+            </Text>
+          </View>
+        )}
+
         <View style={styles.legend}>
           <LegendItem color={colors.morning} label="Morning" colors={colors} />
           <LegendItem color={colors.afternoon} label="Afternoon" colors={colors} />
@@ -219,9 +234,7 @@ export default function ProgressScreen() {
           keyExtractor={(d) => d.toString()}
           contentContainerStyle={[
             styles.list,
-            {
-              paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 24),
-            },
+            { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 24) },
           ]}
           showsVerticalScrollIndicator={false}
           scrollEnabled={days.length > 0}
@@ -235,6 +248,13 @@ export default function ProgressScreen() {
                 afternoon={p?.completionStatus.afternoon ?? false}
                 evening={p?.completionStatus.evening ?? false}
                 isFuture={day > currentDay}
+                isPremium={isPremium}
+                onPress={() =>
+                  router.push({
+                    pathname: "/day-affirmations",
+                    params: { journeyId: "current", day: String(day) },
+                  })
+                }
                 colors={colors}
               />
             );
@@ -318,6 +338,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
+  },
+  archiveBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 20,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  archiveBannerText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    flex: 1,
   },
   legend: {
     flexDirection: "row",
