@@ -63,9 +63,17 @@ function CrystalBall({
   return (
     <View style={styles.ballSection}>
       <Pressable onPress={onShake} style={styles.ballPressable}>
-        <Animated.View style={[styles.ballOuter, { transform: [{ scale: scaleAnim }] }]}>
+        <Animated.View
+          style={[
+            styles.ballOuter,
+            {
+              transform: [{ scale: scaleAnim }],
+              shadowColor: colors.tint,
+            },
+          ]}
+        >
           <LinearGradient
-            colors={["#3B1F6E", "#6D28D9", "#A78BFA", "#C4B5FD"]}
+            colors={colors.crystalGradient}
             style={styles.ballGradient}
             start={{ x: 0.2, y: 0 }}
             end={{ x: 0.8, y: 1 }}
@@ -281,7 +289,7 @@ export default function InspireScreen() {
 
   return (
     <PremiumGate>
-      <GradientBackground colors={["#06030F", "#120A2B", "#0B0B24"]}>
+      <GradientBackground>
         <ScrollView
           contentContainerStyle={[
             styles.container,
@@ -379,7 +387,6 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     overflow: "hidden",
     elevation: 12,
-    shadowColor: "#A78BFA",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.55,
     shadowRadius: 24,

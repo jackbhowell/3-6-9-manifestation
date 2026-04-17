@@ -36,7 +36,16 @@ const soundSources: Record<CompletionSound, number> = {
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-const THEME_ORDER: ThemeName[] = ["indigo", "rose-gold", "forest", "celestial-gold"];
+const THEME_ORDER: ThemeName[] = [
+  "indigo",
+  "rose-gold",
+  "forest",
+  "celestial-gold",
+  "silver",
+  "white",
+  "black",
+  "blue",
+];
 
 export default function SettingsScreen() {
   const colors = useColors();
