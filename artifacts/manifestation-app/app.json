@@ -18,7 +18,8 @@
       "bundleIdentifier": "com.manifestation.companion",
       "buildNumber": "1",
       "infoPlist": {
-        "NSUserNotificationsUsageDescription": "We send you gentle reminders for your morning, afternoon, and evening manifestation sessions."
+        "NSUserNotificationsUsageDescription": "We send you gentle reminders for your morning, afternoon, and evening manifestation sessions.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -51,6 +52,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "cbc9d195-70de-4738-a30f-de7f31a29e30"
+      }
     }
   }
 }
