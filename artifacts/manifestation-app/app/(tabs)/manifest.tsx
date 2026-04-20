@@ -20,7 +20,15 @@ import { useColors } from "@/hooks/useColors";
 export default function ManifestScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { manifestItems, addManifestItem, toggleManifestItem, deleteManifestItem, settings } = useApp();
+  const {
+    manifestItems,
+    addManifestItem,
+    toggleManifestItem,
+    deleteManifestItem,
+    settings,
+    isPremium,
+    unlockPremium,
+  } = useApp();
   const [inputText, setInputText] = useState("");
   const [adding, setAdding] = useState(false);
 
@@ -63,6 +71,7 @@ export default function ManifestScreen() {
     (i) => !i.manifested && i.text.trim() !== (activeIntention ?? "")
   );
   const manifested = manifestItems.filter((i) => i.manifested);
+  const isLocked = !isPremium && pending.length >= 3;
 
   return (
     <GradientBackground>
@@ -157,6 +166,35 @@ export default function ManifestScreen() {
                 </Text>
               </Pressable>
             </View>
+          </View>
+        ) : isLocked ? (
+          <View
+            style={[
+              styles.lockBanner,
+              { backgroundColor: colors.secondary, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.lockBannerLeft}>
+              <View style={styles.lockIconWrap}>
+                <Feather name="lock" size={16} color={colors.mutedForeground} />
+              </View>
+              <View style={styles.lockBannerText}>
+                <Text style={[styles.lockCount, { color: colors.foreground }]}>
+                  3/3 intentions active
+                </Text>
+                <Text style={[styles.lockHint, { color: colors.mutedForeground }]}>
+                  Unlock unlimited with Inspire
+                </Text>
+              </View>
+            </View>
+            <Pressable
+              onPress={unlockPremium}
+              style={[styles.lockUnlockBtn, { backgroundColor: colors.primary }]}
+            >
+              <Text style={[styles.lockUnlockBtnText, { color: colors.primaryForeground }]}>
+                Unlock
+              </Text>
+            </Pressable>
           </View>
         ) : (
           <Pressable
@@ -446,5 +484,49 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: "center",
     fontStyle: "italic",
+  },
+  lockBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    gap: 12,
+  },
+  lockBannerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  lockIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lockBannerText: {
+    flex: 1,
+    gap: 2,
+  },
+  lockCount: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  lockHint: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    fontStyle: "italic",
+  },
+  lockUnlockBtn: {
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  lockUnlockBtnText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
   },
 });
