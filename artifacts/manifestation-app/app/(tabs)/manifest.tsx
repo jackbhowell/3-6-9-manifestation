@@ -37,6 +37,11 @@ export default function ManifestScreen() {
   async function handleAdd() {
     const text = inputText.trim();
     if (!text) return;
+    if (!isPremium && pending.length >= 3) {
+      setAdding(false);
+      setInputText("");
+      return;
+    }
     await addManifestItem(text);
     setInputText("");
     setAdding(false);
@@ -180,7 +185,7 @@ export default function ManifestScreen() {
               </View>
               <View style={styles.lockBannerText}>
                 <Text style={[styles.lockCount, { color: colors.foreground }]}>
-                  3/3 intentions active
+                  {pending.length}/3 calling in
                 </Text>
                 <Text style={[styles.lockHint, { color: colors.mutedForeground }]}>
                   Unlock unlimited with Inspire
