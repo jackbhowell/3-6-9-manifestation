@@ -159,7 +159,7 @@ async function seedRevenueCat() {
       body: {
         store_identifier: productIdentifier,
         app_id: targetApp.id,
-        type: "one_time_purchase",
+        type: "non_consumable",
         display_name: PRODUCT_DISPLAY_NAME,
         ...(isTestStore ? { title: PRODUCT_USER_FACING_TITLE } : {}),
       },

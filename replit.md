@@ -56,6 +56,17 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `utils/notifications.ts` — Expo Notifications scheduling
 - `context/AppContext.tsx` — Global app state with React Context
 - `constants/colors.ts` — Custom dark indigo/violet theme tokens
+- `lib/revenuecat.tsx` — RevenueCat SDK wrapper: `initializeRevenueCat`, `SubscriptionProvider`, `useSubscription` hook
+
+#### In-App Purchases (RevenueCat)
+- **Integration**: Direct API via `react-native-purchases` (NOT Replit's RevenueCat connector)
+- **Secret key**: `REVENUECAT_API_KEY` (v2 key with Read+Write on Project config + Customer info)
+- **Public env vars**: `EXPO_PUBLIC_REVENUECAT_TEST_API_KEY`, `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`, `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`
+- **Project**: `proja1e3bd7f` (RevenueCat project ID stored in `REVENUECAT_PROJECT_ID`)
+- **Product**: `premium_lifetime` (non-consumable, one-time) — iOS/Android/Test Store apps
+- **Entitlement**: `premium` — checked via `REVENUECAT_ENTITLEMENT_IDENTIFIER`
+- **Package**: `$rc_lifetime` in `pkge6032684d63`, offering `default`
+- **Setup scripts**: `scripts/src/seedRevenueCat.ts` (create project/products/entitlement/offering), `scripts/src/fixPackage.ts` (attach products to package)
 
 ## Key Commands
 

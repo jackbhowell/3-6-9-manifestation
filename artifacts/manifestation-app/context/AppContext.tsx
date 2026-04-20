@@ -7,6 +7,7 @@ import React, {
 } from "react";
 
 import { ThemeName } from "@/constants/colors";
+import { useSubscription } from "@/lib/revenuecat";
 import {
   ArchivedJourney,
   DayProgress,
@@ -61,6 +62,10 @@ interface AppContextType {
   deleteCurrentJourney: () => Promise<void>;
   startNewJourney: (s: UserSettings) => Promise<void>;
   unlockPremium: () => Promise<void>;
+  restorePurchases: () => Promise<void>;
+  priceString: string;
+  isPurchasing: boolean;
+  isRestoring: boolean;
   setTheme: (theme: ThemeName) => Promise<void>;
 }
 
@@ -69,6 +74,16 @@ export const AppContext = createContext<AppContextType | null>(null);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [currentDay, setCurrentDay] = useState<number>(1);
+  const {
+    isSubscribed,
+    offerings,
+    purchase: rcPurchase,
+    restore: rcRestore,
+    isPurchasing,
+    isRestoring,
+    isLoading: rcLoading,
+  } = useSubscription();
+
   const [todayProgress, setTodayProgress] = useState<DayProgress | null>(null);
   const [allProgress, setAllProgress] = useState<Record<number, DayProgress>>({});
   const [streak, setStreak] = useState<number>(0);
@@ -77,6 +92,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [selectedTheme, setSelectedTheme] = useState<ThemeName>("indigo");
   const [manifestItems, setManifestItems] = useState<ManifestItem[]>([]);
   const [archivedJourneys, setArchivedJourneys] = useState<ArchivedJourney[]>([]);
+
+  useEffect(() => {
+    if (!rcLoading) {
+      setIsPremium(isSubscribed);
+      if (isSubscribed) {
+        savePremium().catch(() => {});
+      }
+    }
+  }, [isSubscribed, rcLoading]);
 
   const refreshProgress = useCallback(async () => {
     const premium = await loadPremium();
@@ -268,9 +292,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const unlockPremium = useCallback(async () => {
-    await savePremium();
-    setIsPremium(true);
-  }, []);
+    const pkg = offerings?.current?.availablePackages[0];
+    if (!pkg) {
+      console.warn("No package available for purchase");
+      return;
+    }
+    try {
+      await rcPurchase(pkg);
+    } catch (err: any) {
+      if (!err?.userCancelled) {
+        console.warn("Purchase failed:", err?.message ?? err);
+      }
+    }
+  }, [offerings, rcPurchase]);
+
+  const restorePurchases = useCallback(async () => {
+    try {
+      await rcRestore();
+    } catch (err: any) {
+      console.warn("Restore failed:", err?.message ?? err);
+      throw err;
+    }
+  }, [rcRestore]);
 
   const setTheme = useCallback(
     async (theme: ThemeName) => {
@@ -351,6 +394,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deleteCurrentJourney,
         startNewJourney,
         unlockPremium,
+        restorePurchases,
+        priceString: offerings?.current?.availablePackages[0]?.product?.priceString ?? "£2.99",
+        isPurchasing,
+        isRestoring,
         setTheme,
       }}
     >

@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
+import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,11 +25,32 @@ interface PremiumGateProps {
 }
 
 export function PremiumGate({ children }: PremiumGateProps) {
-  const { isPremium, unlockPremium } = useApp();
+  const { isPremium, unlockPremium, restorePurchases, priceString, isPurchasing, isRestoring } = useApp();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   if (isPremium) return <>{children}</>;
+
+  async function handlePurchase() {
+    setPurchaseError(null);
+    try {
+      await unlockPremium();
+    } catch (err: any) {
+      if (!err?.userCancelled) {
+        setPurchaseError(err?.message ?? "Purchase failed. Please try again.");
+      }
+    }
+  }
+
+  async function handleRestore() {
+    setPurchaseError(null);
+    try {
+      await restorePurchases();
+    } catch (err: any) {
+      setPurchaseError(err?.message ?? "Restore failed. Please try again.");
+    }
+  }
 
   return (
     <LinearGradient
@@ -85,19 +107,43 @@ export function PremiumGate({ children }: PremiumGateProps) {
           ))}
         </View>
 
+        {purchaseError ? (
+          <Text style={[styles.errorText, { color: "#F87171" }]}>
+            {purchaseError}
+          </Text>
+        ) : null}
+
         <Pressable
-          onPress={unlockPremium}
-          style={[styles.unlockBtn, { backgroundColor: colors.primary }]}
+          onPress={handlePurchase}
+          disabled={isPurchasing || isRestoring}
+          style={[
+            styles.unlockBtn,
+            { backgroundColor: colors.primary, opacity: isPurchasing ? 0.7 : 1 },
+          ]}
         >
-          <Feather name="unlock" size={18} color={colors.primaryForeground} />
+          {isPurchasing ? (
+            <ActivityIndicator size="small" color={colors.primaryForeground} />
+          ) : (
+            <Feather name="unlock" size={18} color={colors.primaryForeground} />
+          )}
           <Text style={[styles.unlockBtnText, { color: colors.primaryForeground }]}>
-            Unlock Inspire — £2.99
+            {isPurchasing ? "Processing..." : `Unlock Inspire — ${priceString}`}
           </Text>
         </Pressable>
 
         <Text style={[styles.hint, { color: colors.mutedForeground }]}>
           One-time purchase · No subscription
         </Text>
+
+        <Pressable
+          onPress={handleRestore}
+          disabled={isPurchasing || isRestoring}
+          style={{ marginTop: 4 }}
+        >
+          <Text style={[styles.restoreText, { color: colors.mutedForeground }]}>
+            {isRestoring ? "Restoring..." : "Restore Purchase"}
+          </Text>
+        </Pressable>
       </ScrollView>
     </LinearGradient>
   );
@@ -176,6 +222,11 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     lineHeight: 20,
   },
+  errorText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+  },
   unlockBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -199,5 +250,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     marginTop: -8,
+  },
+  restoreText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    textDecorationLine: "underline",
   },
 });

@@ -1,9 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -50,8 +50,20 @@ const THEME_ORDER: ThemeName[] = [
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const { settings, updateSettings, refreshProgress, isPremium, selectedTheme, setTheme } = useApp();
+  const {
+    settings,
+    updateSettings,
+    refreshProgress,
+    isPremium,
+    selectedTheme,
+    setTheme,
+    unlockPremium,
+    restorePurchases,
+    priceString,
+    isPurchasing,
+    isRestoring,
+  } = useApp();
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   const [morning, setMorning] = useState(settings?.notificationTimes.morning ?? "08:00");
   const [afternoon, setAfternoon] = useState(settings?.notificationTimes.afternoon ?? "13:00");
@@ -334,16 +346,69 @@ export default function SettingsScreen() {
               );
             })}
           </View>
-          {!isPremium && (
-            <Pressable
-              onPress={() => router.push("/(tabs)/inspire")}
-              style={styles.unlockLink}
-            >
-              <Feather name="star" size={13} color={colors.primary} />
-              <Text style={[styles.unlockLinkText, { color: colors.primary }]}>
-                Unlock with Premium — go to Inspire
+          {isPremium ? (
+            <View style={[styles.premiumBadge, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "40" }]}>
+              <Feather name="check-circle" size={15} color={colors.primary} />
+              <Text style={[styles.premiumBadgeText, { color: colors.primary }]}>
+                Premium unlocked
               </Text>
-            </Pressable>
+            </View>
+          ) : (
+            <View style={[styles.unlockCard, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+              <Text style={[styles.unlockCardTitle, { color: colors.foreground }]}>
+                Unlock all themes with Inspire
+              </Text>
+              <Text style={[styles.unlockCardSub, { color: colors.mutedForeground }]}>
+                One-time purchase · No subscription
+              </Text>
+              {purchaseError ? (
+                <Text style={[styles.unlockCardError, { color: colors.destructive }]}>
+                  {purchaseError}
+                </Text>
+              ) : null}
+              <Pressable
+                onPress={async () => {
+                  setPurchaseError(null);
+                  try {
+                    await unlockPremium();
+                  } catch (err: any) {
+                    if (!err?.userCancelled) {
+                      setPurchaseError(err?.message ?? "Purchase failed. Please try again.");
+                    }
+                  }
+                }}
+                disabled={isPurchasing || isRestoring}
+                style={[
+                  styles.unlockCardBtn,
+                  { backgroundColor: colors.primary, opacity: isPurchasing ? 0.7 : 1 },
+                ]}
+              >
+                {isPurchasing ? (
+                  <ActivityIndicator size="small" color={colors.primaryForeground} />
+                ) : (
+                  <Feather name="unlock" size={15} color={colors.primaryForeground} />
+                )}
+                <Text style={[styles.unlockCardBtnText, { color: colors.primaryForeground }]}>
+                  {isPurchasing ? "Processing..." : `Unlock — ${priceString}`}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={async () => {
+                  setPurchaseError(null);
+                  try {
+                    await restorePurchases();
+                  } catch (err: any) {
+                    setPurchaseError(err?.message ?? "Restore failed. Please try again.");
+                  }
+                }}
+                disabled={isPurchasing || isRestoring}
+                style={styles.restoreBtn}
+              >
+                <Text style={[styles.restoreBtnText, { color: colors.mutedForeground }]}>
+                  {isRestoring ? "Restoring..." : "Restore Purchase"}
+                </Text>
+              </Pressable>
+            </View>
           )}
         </View>
 
@@ -597,16 +662,60 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
   },
-  unlockLink: {
+  premiumBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginTop: 10,
+    gap: 7,
+    marginTop: 12,
     alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
   },
-  unlockLinkText: {
+  premiumBadgeText: {
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
+  },
+  unlockCard: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    gap: 10,
+  },
+  unlockCardTitle: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  unlockCardSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    marginTop: -4,
+  },
+  unlockCardError: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+  },
+  unlockCardBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 10,
+    paddingVertical: 12,
+  },
+  unlockCardBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  restoreBtn: {
+    alignSelf: "center",
+    paddingVertical: 2,
+  },
+  restoreBtnText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
     textDecorationLine: "underline",
   },
 });
