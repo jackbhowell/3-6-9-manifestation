@@ -81,7 +81,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     restore: rcRestore,
     isPurchasing,
     isRestoring,
-    isLoading: rcLoading,
+    customerInfo,
   } = useSubscription();
 
   const [todayProgress, setTodayProgress] = useState<DayProgress | null>(null);
@@ -94,13 +94,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [archivedJourneys, setArchivedJourneys] = useState<ArchivedJourney[]>([]);
 
   useEffect(() => {
-    if (!rcLoading) {
+    if (customerInfo !== undefined) {
       setIsPremium(isSubscribed);
       if (isSubscribed) {
         savePremium().catch(() => {});
       }
     }
-  }, [isSubscribed, rcLoading]);
+  }, [isSubscribed, customerInfo]);
 
   const refreshProgress = useCallback(async () => {
     const premium = await loadPremium();
@@ -389,7 +389,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         startNewJourney,
         unlockPremium,
         restorePurchases,
-        priceString: offerings?.current?.availablePackages[0]?.product?.priceString ?? "£2.99",
+        priceString: offerings?.current?.availablePackages[0]?.product?.priceString,
         isPurchasing,
         isRestoring,
         setTheme,
