@@ -544,11 +544,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   sparkText: {
-    fontSize: 17,
-    fontFamily: "Inter_600SemiBold",
-    fontStyle: "italic",
+    fontSize: 15,
+    fontFamily: "Licorice_400Regular",
     color: "#fff",
-    lineHeight: 24,
+    lineHeight: 22,
   },
   ballGlow: {
     position: "absolute",

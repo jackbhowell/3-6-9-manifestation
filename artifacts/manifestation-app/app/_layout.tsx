@@ -6,6 +6,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
+import { Licorice_400Regular } from "@expo-google-fonts/licorice";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
@@ -67,6 +68,7 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
     DancingScript_700Bold,
+    Licorice_400Regular,
   });
 
   useEffect(() => {
