@@ -150,6 +150,11 @@ export default function ReflectionScreen() {
               <Text style={[styles.hintText, { color: colors.mutedForeground }]}>
                 Sit quietly, hold your intention in mind, and feel it as already real
               </Text>
+              <Pressable onPress={handleDone} style={styles.skipBtn}>
+                <Text style={[styles.skipText, { color: colors.mutedForeground }]}>
+                  Skip reflection
+                </Text>
+              </Pressable>
             </View>
           )}
 
@@ -246,11 +251,22 @@ const styles = StyleSheet.create({
   },
   timerHint: {
     alignItems: "center",
+    gap: 16,
   },
   hintText: {
     fontSize: 14,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
+    letterSpacing: 0.5,
+  },
+  skipBtn: {
+    opacity: 0.35,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  skipText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
     letterSpacing: 0.5,
   },
   completeActions: {
