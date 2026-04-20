@@ -16,6 +16,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { PremiumCelebrationOverlay } from "@/components/PremiumCelebrationOverlay";
 import { AppProvider } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { initializeRevenueCat, SubscriptionProvider } from "@/lib/revenuecat";
@@ -85,6 +86,7 @@ export default function RootLayout() {
               <KeyboardProvider>
                 <AppProvider>
                   <RootLayoutNav />
+                  <PremiumCelebrationOverlay />
                 </AppProvider>
               </KeyboardProvider>
             </GestureHandlerRootView>

@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -67,6 +68,8 @@ interface AppContextType {
   isPurchasing: boolean;
   isRestoring: boolean;
   setTheme: (theme: ThemeName) => Promise<void>;
+  justUnlocked: boolean;
+  clearJustUnlocked: () => void;
 }
 
 export const AppContext = createContext<AppContextType | null>(null);
@@ -92,12 +95,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [selectedTheme, setSelectedTheme] = useState<ThemeName>("indigo");
   const [manifestItems, setManifestItems] = useState<ManifestItem[]>([]);
   const [archivedJourneys, setArchivedJourneys] = useState<ArchivedJourney[]>([]);
+  const [justUnlocked, setJustUnlocked] = useState<boolean>(false);
+  const prevIsSubscribed = useRef<boolean | undefined>(undefined);
+
+  const clearJustUnlocked = useCallback(() => setJustUnlocked(false), []);
 
   useEffect(() => {
     if (customerInfo !== undefined) {
+      const wasSubscribed = prevIsSubscribed.current;
+      prevIsSubscribed.current = isSubscribed;
       setIsPremium(isSubscribed);
       if (isSubscribed) {
         savePremium().catch(() => {});
+        if (wasSubscribed === false) {
+          setJustUnlocked(true);
+        }
       }
     }
   }, [isSubscribed, customerInfo]);
@@ -393,6 +405,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isPurchasing,
         isRestoring,
         setTheme,
+        justUnlocked,
+        clearJustUnlocked,
       }}
     >
       {children}
