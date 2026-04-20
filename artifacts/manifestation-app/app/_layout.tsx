@@ -22,8 +22,9 @@ import { initializeRevenueCat, SubscriptionProvider } from "@/lib/revenuecat";
 
 try {
   initializeRevenueCat();
-} catch (err: any) {
-  console.warn("RevenueCat Unavailable:", err?.message ?? "Unknown error");
+} catch (err: unknown) {
+  const msg = err instanceof Error ? err.message : "Unknown error";
+  console.warn("RevenueCat Unavailable:", msg);
 }
 
 SplashScreen.preventAutoHideAsync();

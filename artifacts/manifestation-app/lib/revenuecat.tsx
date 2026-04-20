@@ -1,6 +1,7 @@
 import React, { createContext, useContext } from "react";
 import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
+import type { PurchasesPackage } from "react-native-purchases";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Constants from "expo-constants";
 
@@ -10,7 +11,7 @@ const REVENUECAT_ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_AP
 
 export const REVENUECAT_ENTITLEMENT_IDENTIFIER = "premium";
 
-function getRevenueCatApiKey() {
+function getRevenueCatApiKey(): string {
   if (!REVENUECAT_TEST_API_KEY || !REVENUECAT_IOS_API_KEY || !REVENUECAT_ANDROID_API_KEY) {
     throw new Error("RevenueCat Public API Keys not found");
   }
@@ -32,7 +33,6 @@ function getRevenueCatApiKey() {
 
 export function initializeRevenueCat() {
   const apiKey = getRevenueCatApiKey();
-  if (!apiKey) throw new Error("RevenueCat Public API Key not found");
 
   Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
   Purchases.configure({ apiKey });
@@ -60,7 +60,7 @@ function useSubscriptionContext() {
   });
 
   const purchaseMutation = useMutation({
-    mutationFn: async (packageToPurchase: any) => {
+    mutationFn: async (packageToPurchase: PurchasesPackage) => {
       const { customerInfo } = await Purchases.purchasePackage(packageToPurchase);
       return customerInfo;
     },
@@ -103,4 +103,13 @@ export function useSubscription() {
     throw new Error("useSubscription must be used within a SubscriptionProvider");
   }
   return ctx;
+}
+
+export function isUserCancelledError(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "userCancelled" in err &&
+    (err as Record<string, unknown>)["userCancelled"] === true
+  );
 }

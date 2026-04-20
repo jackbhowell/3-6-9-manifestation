@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { isUserCancelledError } from "@/lib/revenuecat";
 
 const PERKS = [
   { icon: "zap" as const, text: "Crystal ball shake for instant affirmation sparks" },
@@ -36,9 +37,10 @@ export function PremiumGate({ children }: PremiumGateProps) {
     setPurchaseError(null);
     try {
       await unlockPremium();
-    } catch (err: any) {
-      if (!err?.userCancelled) {
-        setPurchaseError(err?.message ?? "Purchase failed. Please try again.");
+    } catch (err: unknown) {
+      if (!isUserCancelledError(err)) {
+        const msg = err instanceof Error ? err.message : "Purchase failed. Please try again.";
+        setPurchaseError(msg);
       }
     }
   }
@@ -47,8 +49,9 @@ export function PremiumGate({ children }: PremiumGateProps) {
     setPurchaseError(null);
     try {
       await restorePurchases();
-    } catch (err: any) {
-      setPurchaseError(err?.message ?? "Restore failed. Please try again.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Restore failed. Please try again.";
+      setPurchaseError(msg);
     }
   }
 
@@ -127,7 +130,11 @@ export function PremiumGate({ children }: PremiumGateProps) {
             <Feather name="unlock" size={18} color={colors.primaryForeground} />
           )}
           <Text style={[styles.unlockBtnText, { color: colors.primaryForeground }]}>
-            {isPurchasing ? "Processing..." : `Unlock Inspire — ${priceString}`}
+            {isPurchasing
+              ? "Processing..."
+              : priceString
+              ? `Unlock Inspire — ${priceString}`
+              : "Unlock Inspire"}
           </Text>
         </Pressable>
 

@@ -18,6 +18,7 @@ import { GradientBackground } from "@/components/GradientBackground";
 import { TimePicker } from "@/components/TimePicker";
 import { THEME_META, ThemeName } from "@/constants/colors";
 import { useApp } from "@/context/AppContext";
+import { isUserCancelledError } from "@/lib/revenuecat";
 import { useColors } from "@/hooks/useColors";
 import { validateNotificationTimes } from "@/utils/notifications";
 import { CompletionSound } from "@/utils/storage";
@@ -371,9 +372,10 @@ export default function SettingsScreen() {
                   setPurchaseError(null);
                   try {
                     await unlockPremium();
-                  } catch (err: any) {
-                    if (!err?.userCancelled) {
-                      setPurchaseError(err?.message ?? "Purchase failed. Please try again.");
+                  } catch (err: unknown) {
+                    if (!isUserCancelledError(err)) {
+                      const msg = err instanceof Error ? err.message : "Purchase failed. Please try again.";
+                      setPurchaseError(msg);
                     }
                   }
                 }}
@@ -389,7 +391,11 @@ export default function SettingsScreen() {
                   <Feather name="unlock" size={15} color={colors.primaryForeground} />
                 )}
                 <Text style={[styles.unlockCardBtnText, { color: colors.primaryForeground }]}>
-                  {isPurchasing ? "Processing..." : `Unlock — ${priceString}`}
+                  {isPurchasing
+                    ? "Processing..."
+                    : priceString
+                    ? `Unlock — ${priceString}`
+                    : "Unlock Premium"}
                 </Text>
               </Pressable>
               <Pressable
@@ -397,8 +403,9 @@ export default function SettingsScreen() {
                   setPurchaseError(null);
                   try {
                     await restorePurchases();
-                  } catch (err: any) {
-                    setPurchaseError(err?.message ?? "Restore failed. Please try again.");
+                  } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : "Restore failed. Please try again.";
+                    setPurchaseError(msg);
                   }
                 }}
                 disabled={isPurchasing || isRestoring}

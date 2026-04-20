@@ -7,7 +7,7 @@ import React, {
 } from "react";
 
 import { ThemeName } from "@/constants/colors";
-import { useSubscription } from "@/lib/revenuecat";
+import { useSubscription, isUserCancelledError } from "@/lib/revenuecat";
 import {
   ArchivedJourney,
   DayProgress,
@@ -63,7 +63,7 @@ interface AppContextType {
   startNewJourney: (s: UserSettings) => Promise<void>;
   unlockPremium: () => Promise<void>;
   restorePurchases: () => Promise<void>;
-  priceString: string;
+  priceString: string | undefined;
   isPurchasing: boolean;
   isRestoring: boolean;
   setTheme: (theme: ThemeName) => Promise<void>;
@@ -294,25 +294,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const unlockPremium = useCallback(async () => {
     const pkg = offerings?.current?.availablePackages[0];
     if (!pkg) {
-      console.warn("No package available for purchase");
-      return;
+      throw new Error("No purchase package available. Please check your connection and try again.");
     }
     try {
       await rcPurchase(pkg);
-    } catch (err: any) {
-      if (!err?.userCancelled) {
-        console.warn("Purchase failed:", err?.message ?? err);
+    } catch (err: unknown) {
+      if (!isUserCancelledError(err)) {
+        throw err;
       }
     }
   }, [offerings, rcPurchase]);
 
   const restorePurchases = useCallback(async () => {
-    try {
-      await rcRestore();
-    } catch (err: any) {
-      console.warn("Restore failed:", err?.message ?? err);
-      throw err;
-    }
+    await rcRestore();
   }, [rcRestore]);
 
   const setTheme = useCallback(
