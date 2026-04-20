@@ -24,9 +24,11 @@ import {
   loadArchivedJourneys,
   loadDayProgress,
   loadManifestItems,
+  loadCycleReviewRequested,
   loadPremium,
   loadSettings,
   saveManifestItems,
+  saveCycleReviewRequested,
   savePremium,
   saveSession,
   saveSettings,
@@ -98,7 +100,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [archivedJourneys, setArchivedJourneys] = useState<ArchivedJourney[]>([]);
   const [justUnlocked, setJustUnlocked] = useState<boolean>(false);
   const prevIsSubscribed = useRef<boolean | undefined>(undefined);
-  const cycleReviewFiredRef = useRef<boolean>(false);
 
   const clearJustUnlocked = useCallback(() => setJustUnlocked(false), []);
 
@@ -162,8 +163,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           );
           await saveManifestItems(items);
         }
-        if (!cycleReviewFiredRef.current) {
-          cycleReviewFiredRef.current = true;
+        const alreadyRequested = await loadCycleReviewRequested(s.startDate);
+        if (!alreadyRequested) {
+          await saveCycleReviewRequested(s.startDate);
           try {
             await StoreReview.requestReview();
           } catch {

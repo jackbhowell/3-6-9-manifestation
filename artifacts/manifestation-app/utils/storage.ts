@@ -60,6 +60,7 @@ const KEYS = {
   MANIFEST: "@manifestation/manifest",
   JOURNEYS: "@manifestation/journeys",
   PREMIUM: "@manifestation/premium",
+  cycleReview: (startDate: string) => `@manifestation/cycle_review/${startDate}`,
 };
 
 export async function saveSettings(settings: UserSettings): Promise<void> {
@@ -211,4 +212,13 @@ export async function loadPremium(): Promise<boolean> {
 
 export async function savePremium(): Promise<void> {
   await AsyncStorage.setItem(KEYS.PREMIUM, "true");
+}
+
+export async function loadCycleReviewRequested(startDate: string): Promise<boolean> {
+  const val = await AsyncStorage.getItem(KEYS.cycleReview(startDate));
+  return val === "true";
+}
+
+export async function saveCycleReviewRequested(startDate: string): Promise<void> {
+  await AsyncStorage.setItem(KEYS.cycleReview(startDate), "true");
 }
