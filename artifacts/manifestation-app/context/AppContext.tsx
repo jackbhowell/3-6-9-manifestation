@@ -1,3 +1,4 @@
+import * as StoreReview from "expo-store-review";
 import React, {
   createContext,
   useCallback,
@@ -97,6 +98,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [archivedJourneys, setArchivedJourneys] = useState<ArchivedJourney[]>([]);
   const [justUnlocked, setJustUnlocked] = useState<boolean>(false);
   const prevIsSubscribed = useRef<boolean | undefined>(undefined);
+  const cycleReviewFiredRef = useRef<boolean>(false);
 
   const clearJustUnlocked = useCallback(() => setJustUnlocked(false), []);
 
@@ -159,6 +161,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               : i
           );
           await saveManifestItems(items);
+        }
+        if (!cycleReviewFiredRef.current) {
+          cycleReviewFiredRef.current = true;
+          try {
+            await StoreReview.requestReview();
+          } catch {
+          }
         }
       }
     }

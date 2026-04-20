@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
+import * as StoreReview from "expo-store-review";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Platform,
@@ -180,6 +181,12 @@ export default function AffirmationScreen() {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     await saveAffirmations(sessionKey, affirmations);
+    if (sessionKey === "evening" && (currentDay === 1 || currentDay === 5)) {
+      try {
+        await StoreReview.requestReview();
+      } catch {
+      }
+    }
     router.replace({
       pathname: "/reflection",
       params: { session: sessionKey },
