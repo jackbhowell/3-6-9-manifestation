@@ -13,29 +13,39 @@ const REVENUECAT_ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_AP
 export const REVENUECAT_ENTITLEMENT_IDENTIFIER = "premium";
 
 function getRevenueCatApiKey(): string {
-  if (!REVENUECAT_TEST_API_KEY || !REVENUECAT_IOS_API_KEY || !REVENUECAT_ANDROID_API_KEY) {
-    throw new Error("RevenueCat Public API Keys not found");
-  }
-
   if (__DEV__ || Platform.OS === "web" || Constants.executionEnvironment === "storeClient") {
+    if (!REVENUECAT_TEST_API_KEY) {
+      throw new Error("EXPO_PUBLIC_REVENUECAT_TEST_API_KEY is not set");
+    }
     return REVENUECAT_TEST_API_KEY;
   }
 
   if (Platform.OS === "ios") {
+    if (!REVENUECAT_IOS_API_KEY) {
+      throw new Error("EXPO_PUBLIC_REVENUECAT_IOS_API_KEY is not set");
+    }
     return REVENUECAT_IOS_API_KEY;
   }
 
   if (Platform.OS === "android") {
+    if (!REVENUECAT_ANDROID_API_KEY) {
+      throw new Error("EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY is not set");
+    }
     return REVENUECAT_ANDROID_API_KEY;
   }
 
+  if (!REVENUECAT_TEST_API_KEY) {
+    throw new Error("EXPO_PUBLIC_REVENUECAT_TEST_API_KEY is not set");
+  }
   return REVENUECAT_TEST_API_KEY;
 }
 
 export function initializeRevenueCat() {
   const apiKey = getRevenueCatApiKey();
 
-  Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
+  if (__DEV__) {
+    Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
+  }
   Purchases.configure({ apiKey });
 
   console.log("Configured RevenueCat");
