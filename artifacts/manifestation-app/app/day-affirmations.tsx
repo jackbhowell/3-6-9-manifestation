@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GradientBackground } from "@/components/GradientBackground";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import type { DayProgress } from "@/utils/storage";
 
 type SessionKey = "morning" | "afternoon" | "evening";
 
@@ -34,7 +35,7 @@ export default function DayAffirmationsScreen() {
 
   const dayNum = parseInt(day ?? "1", 10);
 
-  let dayProgress = allProgress[dayNum] ?? null;
+  let dayProgress: DayProgress | null = allProgress[dayNum] ?? null;
   let journeyName = settings?.journeyName || "Current Journey";
 
   if (journeyId !== "current") {
