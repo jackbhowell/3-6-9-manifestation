@@ -1,8 +1,61 @@
 {
   "expo": {
+    "name": "3-6-9 Manifestation Companion",
+    "slug": "manifestation-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "manifestation-app",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D0B1A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.manifestation.companion",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "We send you gentle reminders for your morning, afternoon, and evening manifestation sessions.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.manifestation.companion",
+      "versionCode": 1,
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "sounds": []
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
     "extra": {
       "eas": {
-        "projectId": "a51bbb06-1e3f-433d-b665-ff0a287953c6"
+        "projectId": "cbc9d195-70de-4738-a30f-de7f31a29e30"
       }
     }
   }
