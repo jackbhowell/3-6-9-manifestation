@@ -60,7 +60,7 @@ export const palettes: Record<ThemeName, ColorPalette> = {
     input: "#2D2550",
     morning: "#F9C74F",
     afternoon: "#A78BFA",
-    evening: "#7B61FF",
+    evening: "#4169E1",
     gradientStart: "#0D0B1A",
     gradientMid: "#1A1242",
     gradientEnd: "#0D1F3C",

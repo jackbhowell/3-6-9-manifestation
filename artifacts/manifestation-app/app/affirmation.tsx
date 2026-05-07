@@ -84,9 +84,10 @@ function isValidSession(s: string | undefined): s is Session {
 export default function AffirmationScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { session, viewOnly } = useLocalSearchParams<{
+  const { session, viewOnly, override } = useLocalSearchParams<{
     session: string;
     viewOnly?: string;
+    override?: string;
   }>();
   const { saveAffirmations, settings, todayProgress, allProgress, currentDay } =
     useApp();
@@ -108,6 +109,8 @@ export default function AffirmationScreen() {
     return now >= parseMinsA(t.evening);
   }
 
+  const isOverride = override === "true";
+
   const guardChecked = useRef(false);
   useEffect(() => {
     if (isViewOnly || guardChecked.current) return;
@@ -119,11 +122,13 @@ export default function AffirmationScreen() {
     if (!status) return; // not loaded yet — wait for next update
     if (!settings) return;
     guardChecked.current = true;
-    // Already complete — redirect to view mode instead
+    // Already complete — redirect home
     if (status[sessionKey]) {
       router.replace("/(tabs)");
       return;
     }
+    // When override is set, skip time-window checks so user can start early
+    if (isOverride) return;
     // Afternoon is only blocked if morning is still in its window (not expired) and incomplete
     if (sessionKey === "afternoon" && !status.morning && !sessionExpiredA("morning")) {
       router.replace("/(tabs)");
@@ -138,7 +143,7 @@ export default function AffirmationScreen() {
         return;
       }
     }
-  }, [session, sessionKey, todayProgress, isViewOnly, settings]);
+  }, [session, sessionKey, todayProgress, isViewOnly, settings, isOverride]);
 
   const storedAffirmations: string[] =
     isViewOnly && todayProgress?.sessions[sessionKey]
@@ -158,11 +163,13 @@ export default function AffirmationScreen() {
 
   const previousDaySession: string[] | null = (() => {
     if (currentDay <= 1) return null;
-    const prev = allProgress[currentDay - 1];
-    if (!prev) return null;
-    const prevSess = prev.sessions[sessionKey];
-    if (!prevSess || prevSess.length === 0) return null;
-    return prevSess;
+    for (let d = currentDay - 1; d >= Math.max(1, currentDay - 7); d--) {
+      const prev = allProgress[d];
+      if (!prev) continue;
+      const prevSess = prev.sessions[sessionKey];
+      if (prevSess && prevSess.length > 0) return prevSess;
+    }
+    return null;
   })();
 
   const filledCount = affirmations.filter((a) => a.trim().length > 0).length;
@@ -372,8 +379,16 @@ export default function AffirmationScreen() {
                   }}
                   value={val}
                   onChangeText={(t) => updateAffirmation(i, t)}
-                  placeholder={info.placeholder}
-                  placeholderTextColor={colors.mutedForeground}
+                  placeholder={
+                    i > 0 && affirmations[i - 1]?.trim()
+                      ? affirmations[i - 1]
+                      : info.placeholder
+                  }
+                  placeholderTextColor={
+                    i > 0 && affirmations[i - 1]?.trim()
+                      ? colors.mutedForeground + "88"
+                      : colors.mutedForeground
+                  }
                   returnKeyType={i < info.count - 1 ? "next" : "done"}
                   onSubmitEditing={() => {
                     if (i < info.count - 1) {

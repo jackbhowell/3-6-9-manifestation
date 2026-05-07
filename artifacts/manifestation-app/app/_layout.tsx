@@ -7,6 +7,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { Licorice_400Regular } from "@expo-google-fonts/licorice";
+import { Metamorphous_400Regular } from "@expo-google-fonts/metamorphous";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
@@ -69,6 +70,7 @@ export default function RootLayout() {
     Inter_700Bold,
     DancingScript_700Bold,
     Licorice_400Regular,
+    Metamorphous_400Regular,
   });
 
   useEffect(() => {

@@ -229,6 +229,10 @@ export default function HomeScreen() {
     router.push({ pathname: "/affirmation", params: { session } });
   }
 
+  function startSessionEarly(session: Session) {
+    router.push({ pathname: "/affirmation", params: { session, override: "true" } });
+  }
+
   function viewSession(session: Session) {
     router.push({ pathname: "/affirmation", params: { session, viewOnly: "true" } });
   }
@@ -330,6 +334,7 @@ export default function HomeScreen() {
                 onPress={() => {
                   if (complete) viewSession(sess.key);
                   else if (canStart) startSession(sess.key);
+                  else if (upcoming) startSessionEarly(sess.key);
                 }}
                 testID={`session-${sess.key}`}
                 style={[
@@ -345,7 +350,7 @@ export default function HomeScreen() {
                       : canStart
                       ? colors.accent
                       : colors.border,
-                    opacity: upcoming ? 0.5 : missed ? 0.45 : 1,
+                    opacity: upcoming ? 0.65 : missed ? 0.45 : 1,
                   },
                 ]}
               >
@@ -388,11 +393,15 @@ export default function HomeScreen() {
                   </Text>
                 </View>
                 {!complete && (
-                  <View>
+                  <View style={styles.sessionRight}>
                     {canStart ? (
                       <Feather name="arrow-right" size={20} color={colors.primary} />
+                    ) : upcoming ? (
+                      <Text style={[styles.earlyText, { color: colors.primary }]}>
+                        Start early
+                      </Text>
                     ) : (
-                      <Feather name="lock" size={18} color={colors.mutedForeground} />
+                      <Feather name="slash" size={18} color={colors.mutedForeground} />
                     )}
                   </View>
                 )}
@@ -537,6 +546,15 @@ const styles = StyleSheet.create({
   sessionInfo: {
     flex: 1,
     gap: 3,
+  },
+  sessionRight: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+  earlyText: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    letterSpacing: 0.3,
   },
   sessionLabel: {
     fontSize: 17,

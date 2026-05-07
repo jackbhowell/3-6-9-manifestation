@@ -21,7 +21,12 @@ import { useApp } from "@/context/AppContext";
 import { isUserCancelledError } from "@/lib/revenuecat";
 import { useColors } from "@/hooks/useColors";
 import { validateNotificationTimes } from "@/utils/notifications";
-import { CompletionSound } from "@/utils/storage";
+import {
+  BreathingType,
+  CompletionSound,
+  NatureSound,
+  ReflectionDuration,
+} from "@/utils/storage";
 
 const SOUND_OPTIONS: { key: CompletionSound; label: string; icon: string }[] = [
   { key: "chime",        label: "Chime",        icon: "triangle" },
@@ -75,6 +80,15 @@ export default function SettingsScreen() {
   const [completionSound, setCompletionSound] = useState<CompletionSound>(
     settings?.completionSound ?? "chime"
   );
+  const [natureSound, setNatureSound] = useState<NatureSound>(
+    settings?.natureSound ?? "none"
+  );
+  const [breathingType, setBreathingType] = useState<BreathingType>(
+    settings?.breathingType ?? "none"
+  );
+  const [reflectionDuration, setReflectionDuration] = useState<ReflectionDuration>(
+    settings?.reflectionDuration ?? 60
+  );
   const [saving, setSaving] = useState(false);
   const [timeError, setTimeError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -122,6 +136,9 @@ export default function SettingsScreen() {
       notificationTimes: times,
       notificationsEnabled: notifsEnabled,
       completionSound,
+      natureSound,
+      breathingType,
+      reflectionDuration,
     };
     await updateSettings(updated);
     await refreshProgress();
@@ -276,6 +293,167 @@ export default function SettingsScreen() {
               );
             })}
           </View>
+        </View>
+
+        {/* Breathwork & Reflection — premium */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.cardHeader}>
+            <Feather name="wind" size={18} color={colors.primary} />
+            <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+              Breathwork {"&"} Reflection
+            </Text>
+            {isPremium && (
+              <View style={[styles.premiumPill, { backgroundColor: colors.primary + "22", borderColor: colors.primary + "55" }]}>
+                <Text style={[styles.premiumPillText, { color: colors.primary }]}>Premium</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+            Enhance your reflection sessions with ambient sounds and guided breathing.
+          </Text>
+
+          {/* Nature sound */}
+          <Text style={[styles.settingGroupLabel, { color: colors.mutedForeground }]}>
+            NATURE SOUND
+          </Text>
+          <View style={styles.chipRow}>
+            {(["none", "rain", "ocean", "forest", "wind"] as NatureSound[]).map((opt) => {
+              const labels: Record<NatureSound, string> = { none: "Off", rain: "Rain", ocean: "Ocean", forest: "Forest", wind: "Wind" };
+              const locked = !isPremium && opt !== "none";
+              return (
+                <Pressable
+                  key={opt}
+                  onPress={() => { if (!locked) setNatureSound(opt); }}
+                  style={[
+                    styles.settingChip,
+                    {
+                      borderColor: natureSound === opt ? colors.primary : colors.border,
+                      backgroundColor: natureSound === opt ? colors.primary + "22" : colors.secondary,
+                      opacity: locked ? 0.5 : 1,
+                    },
+                  ]}
+                >
+                  {locked && <Feather name="lock" size={11} color={colors.mutedForeground} />}
+                  <Text style={[styles.settingChipText, {
+                    color: natureSound === opt ? colors.primary : colors.mutedForeground,
+                    fontFamily: natureSound === opt ? "Inter_600SemiBold" : "Inter_400Regular",
+                  }]}>
+                    {labels[opt]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Breathing guide */}
+          <Text style={[styles.settingGroupLabel, { color: colors.mutedForeground, marginTop: 14 }]}>
+            BREATHING GUIDE
+          </Text>
+          <View style={styles.chipRow}>
+            {(["none", "4-4-4-4", "4-7-8", "calm"] as BreathingType[]).map((opt) => {
+              const labels: Record<BreathingType, string> = { none: "Off", "4-4-4-4": "Box", "4-7-8": "4-7-8", calm: "Calm" };
+              const locked = !isPremium && opt !== "none";
+              return (
+                <Pressable
+                  key={opt}
+                  onPress={() => { if (!locked) setBreathingType(opt); }}
+                  style={[
+                    styles.settingChip,
+                    {
+                      borderColor: breathingType === opt ? colors.primary : colors.border,
+                      backgroundColor: breathingType === opt ? colors.primary + "22" : colors.secondary,
+                      opacity: locked ? 0.5 : 1,
+                    },
+                  ]}
+                >
+                  {locked && <Feather name="lock" size={11} color={colors.mutedForeground} />}
+                  <Text style={[styles.settingChipText, {
+                    color: breathingType === opt ? colors.primary : colors.mutedForeground,
+                    fontFamily: breathingType === opt ? "Inter_600SemiBold" : "Inter_400Regular",
+                  }]}>
+                    {labels[opt]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Reflection duration */}
+          <Text style={[styles.settingGroupLabel, { color: colors.mutedForeground, marginTop: 14 }]}>
+            REFLECTION TIMER
+          </Text>
+          <View style={styles.chipRow}>
+            {([30, 60, 120, 180, 300] as ReflectionDuration[]).map((secs) => {
+              const labels: Record<number, string> = { 30: "30s", 60: "1 min", 120: "2 min", 180: "3 min", 300: "5 min" };
+              return (
+                <Pressable
+                  key={secs}
+                  onPress={() => setReflectionDuration(secs)}
+                  style={[
+                    styles.settingChip,
+                    {
+                      borderColor: reflectionDuration === secs ? colors.primary : colors.border,
+                      backgroundColor: reflectionDuration === secs ? colors.primary + "22" : colors.secondary,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.settingChipText, {
+                    color: reflectionDuration === secs ? colors.primary : colors.mutedForeground,
+                    fontFamily: reflectionDuration === secs ? "Inter_600SemiBold" : "Inter_400Regular",
+                  }]}>
+                    {labels[secs]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {!isPremium && (
+            <View style={[styles.unlockCard, { backgroundColor: colors.secondary, borderColor: colors.border, marginTop: 16 }]}>
+              <Text style={[styles.unlockCardTitle, { color: colors.foreground }]}>
+                Premium sounds {"&"} breathing require Inspire
+              </Text>
+              <Text style={[styles.unlockCardSub, { color: colors.mutedForeground }]}>
+                One-time purchase · No subscription
+              </Text>
+              {purchaseError ? (
+                <Text style={[styles.unlockCardError, { color: colors.destructive }]}>
+                  {purchaseError}
+                </Text>
+              ) : null}
+              <Pressable
+                onPress={async () => {
+                  setPurchaseError(null);
+                  try {
+                    await unlockPremium();
+                  } catch (err: unknown) {
+                    if (!isUserCancelledError(err)) {
+                      const msg = err instanceof Error ? err.message : "Purchase failed. Please try again.";
+                      setPurchaseError(msg);
+                    }
+                  }
+                }}
+                disabled={isPurchasing || isRestoring}
+                style={[
+                  styles.unlockCardBtn,
+                  { backgroundColor: colors.primary, opacity: isPurchasing ? 0.7 : 1 },
+                ]}
+              >
+                {isPurchasing ? (
+                  <ActivityIndicator size="small" color={colors.primaryForeground} />
+                ) : (
+                  <Feather name="unlock" size={15} color={colors.primaryForeground} />
+                )}
+                <Text style={[styles.unlockCardBtnText, { color: colors.primaryForeground }]}>
+                  {isPurchasing
+                    ? "Processing..."
+                    : priceString
+                    ? `Unlock — ${priceString}`
+                    : "Unlock Premium"}
+                </Text>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -724,5 +902,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     textDecorationLine: "underline",
+  },
+  premiumPill: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginLeft: "auto",
+  },
+  premiumPillText: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.5,
+  },
+  settingGroupLabel: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 2,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  settingChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  settingChipText: {
+    fontSize: 13,
   },
 });

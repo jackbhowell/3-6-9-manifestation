@@ -1,9 +1,11 @@
 import { Feather } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import { useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Platform,
   Pressable,
   StyleSheet,
@@ -16,9 +18,7 @@ import { GradientBackground } from "@/components/GradientBackground";
 import { TimerCircle } from "@/components/TimerCircle";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { CompletionSound } from "@/utils/storage";
-
-const TOTAL_SECONDS = 60;
+import { BreathingType, CompletionSound, NatureSound } from "@/utils/storage";
 
 const soundSources: Record<CompletionSound, number> = {
   chime:          require("@/assets/sounds/chime.wav"),
@@ -26,32 +26,216 @@ const soundSources: Record<CompletionSound, number> = {
   "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
 };
 
+const NATURE_SOUND_URIS: Record<Exclude<NatureSound, "none">, string> = {
+  rain:   "https://cdn.pixabay.com/audio/2022/05/13/audio_257c68e83e.mp3",
+  ocean:  "https://cdn.pixabay.com/audio/2022/03/15/audio_3e4e45440d.mp3",
+  forest: "https://cdn.pixabay.com/audio/2024/03/15/audio_0b5d4a6e9e.mp3",
+  wind:   "https://cdn.pixabay.com/audio/2022/12/04/audio_5c0f29db25.mp3",
+};
+
+interface BreathPhase {
+  label: string;
+  duration: number;
+  targetScale: number;
+}
+
+const BREATHING_PATTERNS: Record<Exclude<BreathingType, "none">, BreathPhase[]> = {
+  "4-4-4-4": [
+    { label: "Inhale",  duration: 4, targetScale: 1.28 },
+    { label: "Hold",    duration: 4, targetScale: 1.28 },
+    { label: "Exhale",  duration: 4, targetScale: 0.72 },
+    { label: "Hold",    duration: 4, targetScale: 0.72 },
+  ],
+  "4-7-8": [
+    { label: "Inhale",  duration: 4, targetScale: 1.28 },
+    { label: "Hold",    duration: 7, targetScale: 1.28 },
+    { label: "Exhale",  duration: 8, targetScale: 0.72 },
+  ],
+  calm: [
+    { label: "Inhale",  duration: 4, targetScale: 1.28 },
+    { label: "Exhale",  duration: 6, targetScale: 0.72 },
+  ],
+};
+
+function BreathingGuide({
+  breathingType,
+  active,
+}: {
+  breathingType: Exclude<BreathingType, "none">;
+  active: boolean;
+}) {
+  const colors = useColors();
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [phaseIndex, setPhaseIndex] = useState(0);
+  const phaseIndexRef = useRef(0);
+  const cancelledRef = useRef(false);
+
+  const phases = BREATHING_PATTERNS[breathingType];
+
+  useEffect(() => {
+    cancelledRef.current = false;
+    Animated.timing(opacityAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+
+    function runPhase() {
+      if (cancelledRef.current) return;
+      const idx = phaseIndexRef.current;
+      const phase = phases[idx];
+      if (!phase) return;
+
+      Animated.timing(scaleAnim, {
+        toValue: phase.targetScale,
+        duration: phase.duration * 1000,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (!finished || cancelledRef.current) return;
+        const next = (idx + 1) % phases.length;
+        phaseIndexRef.current = next;
+        setPhaseIndex(next);
+        runPhase();
+      });
+    }
+
+    runPhase();
+
+    return () => {
+      cancelledRef.current = true;
+      scaleAnim.stopAnimation();
+    };
+  }, [active, breathingType]);
+
+  if (!active) return null;
+
+  const currentPhase = phases[phaseIndex];
+
+  return (
+    <Animated.View style={[breathStyles.container, { opacity: opacityAnim }]}>
+      <View style={breathStyles.circleWrap}>
+        <Animated.View
+          style={[
+            breathStyles.circle,
+            {
+              borderColor: colors.primary + "60",
+              backgroundColor: colors.primary + "0C",
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        />
+      </View>
+      <Text style={[breathStyles.phaseLabel, { color: colors.mutedForeground }]}>
+        {currentPhase ? currentPhase.label : ""}
+      </Text>
+    </Animated.View>
+  );
+}
+
+const breathStyles = StyleSheet.create({
+  container: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  circleWrap: {
+    width: 72,
+    height: 72,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  circle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 1.5,
+  },
+  phaseLabel: {
+    marginTop: 10,
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 2.5,
+  },
+});
+
 export default function ReflectionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { session } = useLocalSearchParams<{ session: string }>();
-  const { settings } = useApp();
+  const { settings, isPremium } = useApp();
 
   const soundKey: CompletionSound = settings?.completionSound ?? "chime";
   const player = useAudioPlayer(soundSources[soundKey]);
 
-  const [timeLeft, setTimeLeft] = useState(TOTAL_SECONDS);
+  const totalSeconds = settings?.reflectionDuration ?? 60;
+  const breathingType: BreathingType = settings?.breathingType ?? "none";
+  const natureSoundKey: NatureSound = settings?.natureSound ?? "none";
+
+  const [timeLeft, setTimeLeft] = useState(totalSeconds);
   const [isComplete, setIsComplete] = useState(false);
   const [started, setStarted] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const natureSoundRef = useRef<Audio.Sound | null>(null);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (!initializedRef.current && settings?.reflectionDuration) {
+      initializedRef.current = true;
+      setTimeLeft(settings.reflectionDuration);
+    }
+  }, [settings?.reflectionDuration]);
+
+  useEffect(() => {
+    if (!isPremium || natureSoundKey === "none" || !started || isComplete) return;
+
+    const uri = NATURE_SOUND_URIS[natureSoundKey as Exclude<NatureSound, "none">];
+    if (!uri) return;
+
+    let mounted = true;
+    let soundObj: Audio.Sound | null = null;
+
+    async function loadNatureSound() {
+      try {
+        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+        const { sound } = await Audio.Sound.createAsync(
+          { uri },
+          { shouldPlay: true, isLooping: true, volume: 0.3 }
+        );
+        if (!mounted) {
+          await sound.unloadAsync();
+          return;
+        }
+        soundObj = sound;
+        natureSoundRef.current = sound;
+      } catch {
+        // Sound unavailable — silently ignore
+      }
+    }
+
+    loadNatureSound();
+
+    return () => {
+      mounted = false;
+      soundObj?.unloadAsync();
+      natureSoundRef.current = null;
+    };
+  }, [isPremium, natureSoundKey, started, isComplete]);
 
   const handleComplete = useCallback(async () => {
     setIsComplete(true);
     try {
+      await natureSoundRef.current?.stopAsync();
+      await natureSoundRef.current?.unloadAsync();
+      natureSoundRef.current = null;
+    } catch {}
+    try {
       player.seekTo(0);
       player.play();
-    } catch {
-    }
+    } catch {}
     if (Platform.OS !== "web") {
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch {
-      }
+      } catch {}
     }
   }, [player]);
 
@@ -76,7 +260,11 @@ export default function ReflectionScreen() {
     setStarted(true);
   }
 
-  function handleDone() {
+  async function handleDone() {
+    try {
+      await natureSoundRef.current?.stopAsync();
+      await natureSoundRef.current?.unloadAsync();
+    } catch {}
     router.replace("/(tabs)");
   }
 
@@ -94,10 +282,10 @@ export default function ReflectionScreen() {
   };
   const message = sessionMessages[session ?? ""] ?? "Breathe and be present.";
 
+  const showBreathing = isPremium && breathingType !== "none";
+
   return (
-    <GradientBackground
-      colors={["#06030F", "#120A2B", "#0B0B24"]}
-    >
+    <GradientBackground colors={["#06030F", "#120A2B", "#0B0B24"]}>
       <View
         style={[
           styles.container,
@@ -122,10 +310,16 @@ export default function ReflectionScreen() {
         <View style={styles.timerContainer}>
           <TimerCircle
             timeLeft={timeLeft}
-            totalTime={TOTAL_SECONDS}
+            totalTime={totalSeconds}
             started={started}
             size={240}
           />
+          {showBreathing && (
+            <BreathingGuide
+              breathingType={breathingType as Exclude<BreathingType, "none">}
+              active={started && !isComplete}
+            />
+          )}
         </View>
 
         <View style={styles.footer}>

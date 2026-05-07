@@ -26,7 +26,12 @@ import {
   ALL_SPARKS,
   MANIFEST_CATEGORIES,
 } from "@/constants/affirmations";
+import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+
+const API_BASE = process.env.EXPO_PUBLIC_DOMAIN
+  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api-server`
+  : "http://localhost:3001";
 
 const SHAKE_THRESHOLD = 1.8;
 const SHAKE_COOLDOWN_MS = 1200;
@@ -317,12 +322,40 @@ function ItemModal({
 export default function InspireScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { settings } = useApp();
 
   const [mode, setMode] = useState<LibraryMode>("affirmation");
   const [spark, setSpark] = useState(ALL_SPARKS[0]);
   const [revealed, setRevealed] = useState(false);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const lastShakeRef = useRef(0);
+
+  const [aiIdeas, setAiIdeas] = useState<string[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  async function generateIdeas() {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/ai/affirmation-ideas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intention: settings?.intention ?? "",
+          session: "morning",
+        }),
+      });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = (await res.json()) as { ideas?: string[]; error?: string };
+      if (data.error) throw new Error(data.error);
+      setAiIdeas(data.ideas ?? []);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   const activePool = mode === "affirmation" ? ALL_SPARKS : ALL_MANIFEST_SPARKS;
   const activeCategories = mode === "affirmation" ? AFFIRMATION_CATEGORIES : MANIFEST_CATEGORIES;
@@ -398,6 +431,77 @@ export default function InspireScreen() {
             spark={spark}
             revealed={revealed}
           />
+
+          {/* AI Affirmation Ideas card */}
+          <View style={[styles.aiCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.aiCardHeader}>
+              <View style={[styles.aiIconWrap, { backgroundColor: colors.primary + "22" }]}>
+                <Feather name="zap" size={16} color={colors.primary} />
+              </View>
+              <View style={styles.aiCardTitleGroup}>
+                <Text style={[styles.aiCardTitle, { color: colors.foreground }]}>
+                  AI Affirmation Ideas
+                </Text>
+                <Text style={[styles.aiCardSub, { color: colors.mutedForeground }]}>
+                  {settings?.intention
+                    ? `Based on: "${settings.intention.slice(0, 40)}${settings.intention.length > 40 ? "…" : ""}"`
+                    : "Personalised ideas from your intention"}
+                </Text>
+              </View>
+            </View>
+
+            {aiError ? (
+              <Text style={[styles.aiError, { color: colors.destructive }]}>
+                {aiError}
+              </Text>
+            ) : null}
+
+            {aiIdeas.length > 0 && !aiLoading && (
+              <View style={styles.aiIdeas}>
+                {aiIdeas.map((idea, idx) => (
+                  <Pressable
+                    key={idx}
+                    onPress={() => setSelectedItem(idea)}
+                    style={[styles.aiIdeaRow, {
+                      borderBottomColor: colors.border,
+                      borderBottomWidth: idx < aiIdeas.length - 1 ? StyleSheet.hairlineWidth : 0,
+                    }]}
+                  >
+                    <Text style={[styles.aiIdeaText, { color: colors.foreground }]}>
+                      {idea}
+                    </Text>
+                    <Feather name="copy" size={14} color={colors.mutedForeground} style={{ opacity: 0.5 }} />
+                  </Pressable>
+                ))}
+              </View>
+            )}
+
+            <Pressable
+              onPress={generateIdeas}
+              disabled={aiLoading}
+              style={[
+                styles.aiGenerateBtn,
+                {
+                  backgroundColor: aiLoading ? colors.secondary : colors.primary + "22",
+                  borderColor: colors.primary + "55",
+                  opacity: aiLoading ? 0.7 : 1,
+                },
+              ]}
+            >
+              {aiLoading ? (
+                <Text style={[styles.aiGenerateBtnText, { color: colors.mutedForeground }]}>
+                  Generating…
+                </Text>
+              ) : (
+                <>
+                  <Feather name="refresh-cw" size={14} color={colors.primary} />
+                  <Text style={[styles.aiGenerateBtnText, { color: colors.primary }]}>
+                    {aiIdeas.length > 0 ? "Regenerate" : "Generate Ideas"}
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          </View>
 
           <View style={[styles.modeToggle, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
             {(["affirmation", "manifest"] as LibraryMode[]).map((m) => {
@@ -511,7 +615,9 @@ const styles = StyleSheet.create({
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
+    paddingHorizontal: 18,
+    paddingTop: 28,
+    paddingBottom: 16,
   },
   ballShine: {
     position: "absolute",
@@ -536,18 +642,88 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: 0.5,
   },
+  aiCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    gap: 14,
+    marginBottom: 4,
+  },
+  aiCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  aiIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  aiCardTitleGroup: {
+    flex: 1,
+    gap: 3,
+  },
+  aiCardTitle: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  aiCardSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 17,
+  },
+  aiError: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
+  },
+  aiIdeas: {
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  aiIdeaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 11,
+    paddingHorizontal: 2,
+    gap: 10,
+  },
+  aiIdeaText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 20,
+  },
+  aiGenerateBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 22,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  aiGenerateBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
   sparkLettersRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
+    paddingHorizontal: 4,
   },
   sparkText: {
-    fontSize: 36,
-    fontFamily: "Licorice_400Regular",
+    fontSize: 16,
+    fontFamily: "Metamorphous_400Regular",
     color: "#fff",
-    lineHeight: 30,
+    lineHeight: 26,
   },
   ballGlow: {
     position: "absolute",

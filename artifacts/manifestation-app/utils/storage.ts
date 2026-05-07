@@ -3,6 +3,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ThemeName } from "@/constants/colors";
 
 export type CompletionSound = "chime" | "bell" | "singing-bowl";
+export type BreathingType = "none" | "4-4-4-4" | "4-7-8" | "calm";
+export type ReflectionDuration = 30 | 60 | 120 | 180 | 300;
+export type NatureSound = "none" | "rain" | "ocean" | "forest" | "wind";
 
 export interface UserSettings {
   cycleLength: 33 | 45;
@@ -17,6 +20,9 @@ export interface UserSettings {
   notificationsEnabled?: boolean;
   completionSound?: CompletionSound;
   selectedTheme?: ThemeName;
+  breathingType?: BreathingType;
+  reflectionDuration?: ReflectionDuration;
+  natureSound?: NatureSound;
 }
 
 export interface SessionData {
