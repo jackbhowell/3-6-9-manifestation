@@ -367,12 +367,14 @@ export default function HomeScreen() {
                   ]}
                 >
                   <Feather
-                    name={complete ? "check" : missed ? "slash" : sess.icon}
+                    name={complete ? "check" : missed ? "slash" : upcoming ? "lock" : sess.icon}
                     size={20}
                     color={
                       complete
                         ? colors.foreground
                         : missed
+                        ? colors.mutedForeground
+                        : upcoming
                         ? colors.mutedForeground
                         : colors.primary
                     }

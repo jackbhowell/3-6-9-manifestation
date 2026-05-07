@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import { useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -38,6 +39,13 @@ const soundSources: Record<CompletionSound, number> = {
   chime:          require("@/assets/sounds/chime.wav"),
   bell:           require("@/assets/sounds/bell.wav"),
   "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
+};
+
+const NATURE_SOUND_URIS: Record<Exclude<NatureSound, "none">, string> = {
+  rain:   "https://cdn.pixabay.com/audio/2022/05/13/audio_257c68e83e.mp3",
+  ocean:  "https://cdn.pixabay.com/audio/2022/03/15/audio_3e4e45440d.mp3",
+  forest: "https://cdn.pixabay.com/audio/2024/03/15/audio_0b5d4a6e9e.mp3",
+  wind:   "https://cdn.pixabay.com/audio/2022/12/04/audio_5c0f29db25.mp3",
 };
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -92,6 +100,9 @@ export default function SettingsScreen() {
   const [saving, setSaving] = useState(false);
   const [timeError, setTimeError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [naturePreviewing, setNaturePreviewing] = useState<NatureSound | null>(null);
+
+  const natureSoundRef = useRef<Audio.Sound | null>(null);
 
   const chimePlayer = useAudioPlayer(soundSources["chime"]);
   const bellPlayer = useAudioPlayer(soundSources["bell"]);
@@ -111,6 +122,43 @@ export default function SettingsScreen() {
       setCompletionSound(settings.completionSound ?? "chime");
     }
   }, [settings]);
+
+  useEffect(() => {
+    return () => {
+      if (natureSoundRef.current) {
+        natureSoundRef.current.stopAsync()
+          .then(() => natureSoundRef.current?.unloadAsync())
+          .catch(() => {});
+      }
+    };
+  }, []);
+
+  async function previewNatureSound(opt: NatureSound) {
+    if (opt === "none") return;
+    try {
+      if (natureSoundRef.current) {
+        await natureSoundRef.current.stopAsync();
+        await natureSoundRef.current.unloadAsync();
+        natureSoundRef.current = null;
+      }
+      setNaturePreviewing(opt);
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: NATURE_SOUND_URIS[opt] },
+        { shouldPlay: true, volume: 0.5 }
+      );
+      natureSoundRef.current = sound;
+      setTimeout(async () => {
+        try {
+          await sound.stopAsync();
+          await sound.unloadAsync();
+          if (natureSoundRef.current === sound) natureSoundRef.current = null;
+        } catch {}
+        setNaturePreviewing((prev) => (prev === opt ? null : prev));
+      }, 4000);
+    } catch {
+      setNaturePreviewing(null);
+    }
+  }
 
   function handlePickSound(key: CompletionSound) {
     setCompletionSound(key);
@@ -320,10 +368,16 @@ export default function SettingsScreen() {
             {(["none", "rain", "ocean", "forest", "wind"] as NatureSound[]).map((opt) => {
               const labels: Record<NatureSound, string> = { none: "Off", rain: "Rain", ocean: "Ocean", forest: "Forest", wind: "Wind" };
               const locked = !isPremium && opt !== "none";
+              const isPreviewing = naturePreviewing === opt;
               return (
                 <Pressable
                   key={opt}
-                  onPress={() => { if (!locked) setNatureSound(opt); }}
+                  onPress={() => {
+                    if (!locked) {
+                      setNatureSound(opt);
+                      void previewNatureSound(opt);
+                    }
+                  }}
                   style={[
                     styles.settingChip,
                     {
@@ -333,7 +387,15 @@ export default function SettingsScreen() {
                     },
                   ]}
                 >
-                  {locked && <Feather name="lock" size={11} color={colors.mutedForeground} />}
+                  {locked ? (
+                    <Feather name="lock" size={11} color={colors.mutedForeground} />
+                  ) : opt !== "none" ? (
+                    <Feather
+                      name={isPreviewing ? "volume-2" : "play"}
+                      size={11}
+                      color={natureSound === opt ? colors.primary : colors.mutedForeground}
+                    />
+                  ) : null}
                   <Text style={[styles.settingChipText, {
                     color: natureSound === opt ? colors.primary : colors.mutedForeground,
                     fontFamily: natureSound === opt ? "Inter_600SemiBold" : "Inter_400Regular",
@@ -351,7 +413,7 @@ export default function SettingsScreen() {
           </Text>
           <View style={styles.chipRow}>
             {(["none", "4-4-4-4", "4-7-8", "calm"] as BreathingType[]).map((opt) => {
-              const labels: Record<BreathingType, string> = { none: "Off", "4-4-4-4": "Box", "4-7-8": "4-7-8", calm: "Calm" };
+              const labels: Record<BreathingType, string> = { none: "Off", "4-4-4-4": "Box (4-4-4-4)", "4-7-8": "4-7-8", calm: "Calm (4-6)" };
               const locked = !isPremium && opt !== "none";
               return (
                 <Pressable

@@ -59,6 +59,11 @@ const SECTIONS: Section[] = [
     title: "The Reflection Moment",
     body: "After each session, you will be invited into a 60-second silence. This is not optional — it is perhaps the most important part.\n\nIn the stillness after writing, your subconscious mind is most open. The words you've just written have amplitude. Let them resonate. Let the feeling of having what you've declared wash through you.\n\nThis is where the signal is sent. Not in the wanting, but in the receiving.",
   },
+  {
+    id: "breathwork",
+    title: "Breathing for Manifestation",
+    body: "Before you write, how you breathe determines how deeply you receive. The three breathing guides in this app are chosen to move you from ordinary waking mind into a receptive, coherent state — the state in which affirmations are most powerfully absorbed.\n\n𝟒-𝟒-𝟒-𝟒  BOX BREATHING\nInhale for 4 · Hold for 4 · Exhale for 4 · Hold for 4\n\nBox breathing is used by elite performers, military training and meditation practitioners worldwide. The equal counts create symmetry in the nervous system, quieting mental chatter and producing a calm, grounded clarity. It is ideal for morning sessions, when the mind is busy and needs anchoring.\n\n𝟒-𝟕-𝟖  BREATHING\nInhale for 4 · Hold for 7 · Exhale for 8\n\nDeveloped by Dr. Andrew Weil from ancient pranayama, the 4-7-8 pattern is one of the most potent natural relaxants available. The long hold allows oxygen to fully saturate the bloodstream. The extended exhale activates the parasympathetic nervous system, releasing accumulated tension. Ideal for evening sessions when you want to move deeply into embodiment.\n\n𝙲𝙰𝙻𝙼  (4-6)\nInhale for 4 · Exhale for 6\n\nThe simplest and most natural of the three. When the exhale is longer than the inhale, the vagus nerve is stimulated and the body shifts into rest. Research shows this ratio alone can lower cortisol levels within minutes. Use Calm for afternoon sessions when you need to transition from the pace of the day into presence — or any time you want a gentle entry without effort.",
+  },
 ];
 
 export default function LearnScreen() {

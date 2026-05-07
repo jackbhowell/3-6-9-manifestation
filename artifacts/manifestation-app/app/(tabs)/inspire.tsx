@@ -30,8 +30,8 @@ import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 const API_BASE = process.env.EXPO_PUBLIC_DOMAIN
-  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api-server`
-  : "http://localhost:3001";
+  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}`
+  : "http://localhost:8080";
 
 const SHAKE_THRESHOLD = 1.8;
 const SHAKE_COOLDOWN_MS = 1200;
