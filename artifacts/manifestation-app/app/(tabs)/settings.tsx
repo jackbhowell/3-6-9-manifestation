@@ -208,7 +208,7 @@ export default function SettingsScreen() {
           styles.scroll,
           {
             paddingTop: insets.top + (Platform.OS === "web" ? 67 : 20),
-            paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 110),
+            paddingBottom: insets.bottom + (Platform.OS === "web" ? 120 : 110),
           },
         ]}
         showsVerticalScrollIndicator={false}

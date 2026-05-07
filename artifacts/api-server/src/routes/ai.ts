@@ -67,17 +67,25 @@ aiRouter.post("/ai/affirmation-ideas", async (req, res) => {
         {
           role: "system",
           content: `You are a manifestation coach helping a user write powerful affirmations using the 3-6-9 method.
-Generate 5 short, present-tense affirmations suited for the ${sessionLabel} session.
-Rules:
+Generate exactly 5 present-tense affirmations suited for the ${sessionLabel} session.
+
+Structure them in this exact order:
+1. LITERAL — name the intention directly and specifically (e.g. if intention is "UFO encounter", write exactly about having a UFO encounter)
+2. LITERAL — another very specific, direct affirmation naming the intention almost word-for-word, from a slightly different angle (e.g. the feeling or safety of that specific experience)
+3. EXPANSIVE — broader, more open affirmation about the feeling or energy behind the intention
+4. EXPANSIVE — another expansive affirmation about openness, readiness, or gratitude
+5. EXPANSIVE — a third expansive affirmation about the person's overall alignment or vibration
+
+Rules for all 5:
 - Start each with "I am", "I have", "I feel", or similar present-tense language
-- Make them personal, vivid, and emotionally resonant
-- Keep each under 12 words
+- Make them emotionally resonant and vivid
+- Keep each under 14 words
 - Do NOT number them
 - Return ONLY the 5 affirmations, one per line, no extra text or explanation`,
         },
         {
           role: "user",
-          content: `${intentionText}\n\nGenerate 5 affirmations for my ${sessionLabel} session.`,
+          content: `${intentionText}\n\nGenerate 5 affirmations for my ${sessionLabel} session. Remember: the first 2 must directly and literally name the intention.`,
         },
       ],
     });
