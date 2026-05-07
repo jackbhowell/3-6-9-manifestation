@@ -1,8 +1,28 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import OpenAI from "openai";
 
 const aiRouter = Router();
 
+// --- simple in-memory rate limiter (10 req/min per IP) ---
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const MAX_PER_MINUTE = 10;
+
+function checkRateLimit(req: Request): boolean {
+  const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim()
+    ?? req.socket.remoteAddress
+    ?? "unknown";
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (entry.count >= MAX_PER_MINUTE) return false;
+  entry.count += 1;
+  return true;
+}
+
+// --- lazy OpenAI client (no startup crash if env vars are absent) ---
 function getOpenAIClient(): OpenAI | null {
   const baseURL = process.env["AI_INTEGRATIONS_OPENAI_BASE_URL"];
   const apiKey = process.env["AI_INTEGRATIONS_OPENAI_API_KEY"];
@@ -11,6 +31,11 @@ function getOpenAIClient(): OpenAI | null {
 }
 
 aiRouter.post("/ai/affirmation-ideas", async (req, res) => {
+  if (!checkRateLimit(req)) {
+    res.status(429).json({ error: "Too many requests — please wait a moment" });
+    return;
+  }
+
   const client = getOpenAIClient();
   if (!client) {
     res.status(503).json({ error: "AI integration not configured on this server" });
