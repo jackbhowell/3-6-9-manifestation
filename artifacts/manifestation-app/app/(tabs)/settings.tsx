@@ -42,10 +42,11 @@ const soundSources: Record<CompletionSound, number> = {
 };
 
 const NATURE_SOUNDS: Record<Exclude<NatureSound, "none">, number> = {
-  rain:   require("@/assets/sounds/rain.wav"),
-  ocean:  require("@/assets/sounds/ocean.wav"),
-  forest: require("@/assets/sounds/forest.wav"),
-  wind:   require("@/assets/sounds/wind.wav"),
+  rain:          require("@/assets/sounds/rain.wav"),
+  ocean:         require("@/assets/sounds/ocean.wav"),
+  forest:        require("@/assets/sounds/forest.wav"),
+  wind:          require("@/assets/sounds/wind.wav"),
+  "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
 };
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -365,8 +366,8 @@ export default function SettingsScreen() {
             NATURE SOUND
           </Text>
           <View style={styles.chipRow}>
-            {(["none", "rain", "ocean", "forest", "wind"] as NatureSound[]).map((opt) => {
-              const labels: Record<NatureSound, string> = { none: "Off", rain: "Rain", ocean: "Ocean", forest: "Forest", wind: "Wind" };
+            {(["none", "rain", "ocean", "forest", "wind", "singing-bowl"] as NatureSound[]).map((opt) => {
+              const labels: Record<NatureSound, string> = { none: "Off", rain: "Rain", ocean: "Ocean", forest: "Forest", wind: "Wind", "singing-bowl": "Bowl" };
               const locked = !isPremium && opt !== "none";
               const isPreviewing = naturePreviewing === opt;
               return (

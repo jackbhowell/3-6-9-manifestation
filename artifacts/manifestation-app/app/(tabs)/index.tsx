@@ -216,6 +216,16 @@ export default function HomeScreen() {
     return todayProgress?.completionStatus[session] ?? false;
   }
 
+  /** Afternoon can only be started early if morning is done.
+   *  Evening can only be started early if afternoon is done. */
+  function canStartEarly(session: Session): boolean {
+    const status = todayProgress?.completionStatus;
+    if (session === "morning") return true;
+    if (session === "afternoon") return status?.morning ?? false;
+    if (session === "evening") return status?.afternoon ?? false;
+    return false;
+  }
+
   const nextSession = getNextAvailableSession();
 
   // "All done" when every session is either completed or its window has closed for the day
@@ -334,7 +344,7 @@ export default function HomeScreen() {
                 onPress={() => {
                   if (complete) viewSession(sess.key);
                   else if (canStart) startSession(sess.key);
-                  else if (upcoming) startSessionEarly(sess.key);
+                  else if (upcoming && canStartEarly(sess.key)) startSessionEarly(sess.key);
                 }}
                 testID={`session-${sess.key}`}
                 style={[
@@ -398,12 +408,12 @@ export default function HomeScreen() {
                   <View style={styles.sessionRight}>
                     {canStart ? (
                       <Feather name="arrow-right" size={20} color={colors.primary} />
-                    ) : upcoming ? (
+                    ) : upcoming && canStartEarly(sess.key) ? (
                       <Text style={[styles.earlyText, { color: colors.primary }]}>
                         Start early
                       </Text>
                     ) : (
-                      <Feather name="slash" size={18} color={colors.mutedForeground} />
+                      <Feather name="lock" size={16} color={colors.mutedForeground} />
                     )}
                   </View>
                 )}

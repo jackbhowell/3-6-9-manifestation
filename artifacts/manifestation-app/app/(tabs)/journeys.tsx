@@ -102,10 +102,6 @@ export default function JourneysScreen() {
   const sortedArchived = [...archivedJourneys].reverse();
 
   function confirmDelete(journey: ArchivedJourney) {
-    if (Platform.OS === "web") {
-      deleteArchivedJourney(journey.id);
-      return;
-    }
     Alert.alert(
       "Delete Journey",
       `Delete "${journey.name}"? This cannot be undone.`,
@@ -122,10 +118,6 @@ export default function JourneysScreen() {
 
   function confirmDeleteCurrent() {
     const name = journeyName;
-    if (Platform.OS === "web") {
-      deleteCurrentJourney();
-      return;
-    }
     Alert.alert(
       "Delete Current Journey",
       `Delete "${name}" and all its progress? Your manifest list and past journeys will be kept. This cannot be undone.`,

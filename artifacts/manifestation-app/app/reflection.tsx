@@ -27,13 +27,14 @@ const soundSources: Record<CompletionSound, number> = {
 };
 
 const NATURE_SOUNDS: Record<Exclude<NatureSound, "none">, number> = {
-  rain:   require("@/assets/sounds/rain.wav"),
-  ocean:  require("@/assets/sounds/ocean.wav"),
-  forest: require("@/assets/sounds/forest.wav"),
-  wind:   require("@/assets/sounds/wind.wav"),
+  rain:          require("@/assets/sounds/rain.wav"),
+  ocean:         require("@/assets/sounds/ocean.wav"),
+  forest:        require("@/assets/sounds/forest.wav"),
+  wind:          require("@/assets/sounds/wind.wav"),
+  "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
 };
 
-const TICK_SOUND = require("@/assets/sounds/bell.wav");
+const TICK_SOUND = require("@/assets/sounds/chime.wav");
 
 interface BreathPhase {
   label: string;
@@ -96,7 +97,7 @@ export default function ReflectionScreen() {
   const tickSoundRef = useRef<Audio.Sound | null>(null);
   useEffect(() => {
     let s: Audio.Sound;
-    Audio.Sound.createAsync(TICK_SOUND, { volume: 0.2 })
+    Audio.Sound.createAsync(TICK_SOUND, { volume: 0.25 })
       .then(({ sound }) => { s = sound; tickSoundRef.current = sound; })
       .catch(() => {});
     return () => { s?.unloadAsync().catch(() => {}); };

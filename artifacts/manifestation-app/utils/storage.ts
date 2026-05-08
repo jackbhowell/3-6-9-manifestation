@@ -5,7 +5,7 @@ import { ThemeName } from "@/constants/colors";
 export type CompletionSound = "chime" | "bell" | "singing-bowl";
 export type BreathingType = "none" | "4-4-4-4" | "4-7-8" | "calm";
 export type ReflectionDuration = 30 | 60 | 120 | 180 | 300;
-export type NatureSound = "none" | "rain" | "ocean" | "forest" | "wind";
+export type NatureSound = "none" | "rain" | "ocean" | "forest" | "wind" | "singing-bowl";
 
 export interface UserSettings {
   cycleLength: 33 | 45;
