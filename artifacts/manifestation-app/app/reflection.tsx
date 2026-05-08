@@ -34,7 +34,7 @@ const NATURE_SOUNDS: Record<Exclude<NatureSound, "none">, number> = {
   "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
 };
 
-const TICK_SOUND = require("@/assets/sounds/chime.wav");
+const TICK_SOUND = require("@/assets/sounds/ting.wav");
 
 interface BreathPhase {
   label: string;
