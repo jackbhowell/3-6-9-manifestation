@@ -41,11 +41,11 @@ const soundSources: Record<CompletionSound, number> = {
   "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
 };
 
-const NATURE_SOUND_URIS: Record<Exclude<NatureSound, "none">, string> = {
-  rain:   "https://cdn.pixabay.com/audio/2022/05/13/audio_257c68e83e.mp3",
-  ocean:  "https://cdn.pixabay.com/audio/2022/03/15/audio_3e4e45440d.mp3",
-  forest: "https://cdn.pixabay.com/audio/2024/03/15/audio_0b5d4a6e9e.mp3",
-  wind:   "https://cdn.pixabay.com/audio/2022/12/04/audio_5c0f29db25.mp3",
+const NATURE_SOUNDS: Record<Exclude<NatureSound, "none">, number> = {
+  rain:   require("@/assets/sounds/rain.wav"),
+  ocean:  require("@/assets/sounds/ocean.wav"),
+  forest: require("@/assets/sounds/forest.wav"),
+  wind:   require("@/assets/sounds/wind.wav"),
 };
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -143,7 +143,7 @@ export default function SettingsScreen() {
       }
       setNaturePreviewing(opt);
       const { sound } = await Audio.Sound.createAsync(
-        { uri: NATURE_SOUND_URIS[opt] },
+        NATURE_SOUNDS[opt],
         { shouldPlay: true, volume: 0.5 }
       );
       natureSoundRef.current = sound;

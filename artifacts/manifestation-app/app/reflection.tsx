@@ -26,11 +26,11 @@ const soundSources: Record<CompletionSound, number> = {
   "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
 };
 
-const NATURE_SOUND_URIS: Record<Exclude<NatureSound, "none">, string> = {
-  rain:   "https://cdn.pixabay.com/audio/2022/05/13/audio_257c68e83e.mp3",
-  ocean:  "https://cdn.pixabay.com/audio/2022/03/15/audio_3e4e45440d.mp3",
-  forest: "https://cdn.pixabay.com/audio/2024/03/15/audio_0b5d4a6e9e.mp3",
-  wind:   "https://cdn.pixabay.com/audio/2022/12/04/audio_5c0f29db25.mp3",
+const NATURE_SOUNDS: Record<Exclude<NatureSound, "none">, number> = {
+  rain:   require("@/assets/sounds/rain.wav"),
+  ocean:  require("@/assets/sounds/ocean.wav"),
+  forest: require("@/assets/sounds/forest.wav"),
+  wind:   require("@/assets/sounds/wind.wav"),
 };
 
 interface BreathPhase {
@@ -55,6 +55,12 @@ const BREATHING_PATTERNS: Record<Exclude<BreathingType, "none">, BreathPhase[]> 
     { label: "Inhale",  duration: 4, targetScale: 1.28 },
     { label: "Exhale",  duration: 6, targetScale: 0.72 },
   ],
+};
+
+const PATTERN_LABELS: Record<Exclude<BreathingType, "none">, string> = {
+  "4-4-4-4": "Box  4 · 4 · 4 · 4",
+  "4-7-8":   "4 · 7 · 8",
+  calm:      "Calm  4 · 6",
 };
 
 function BreathingGuide({
@@ -87,6 +93,10 @@ function BreathingGuide({
       const phase = phases[idx];
       if (!phase) return;
 
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      }
+
       Animated.timing(scaleAnim, {
         toValue: phase.targetScale,
         duration: phase.duration * 1000,
@@ -114,6 +124,9 @@ function BreathingGuide({
 
   return (
     <Animated.View style={[breathStyles.container, { opacity: opacityAnim }]}>
+      <Text style={[breathStyles.patternLabel, { color: colors.mutedForeground + "88" }]}>
+        {PATTERN_LABELS[breathingType]}
+      </Text>
       <View style={breathStyles.circleWrap}>
         <Animated.View
           style={[
@@ -127,7 +140,7 @@ function BreathingGuide({
         />
       </View>
       <Text style={[breathStyles.phaseLabel, { color: colors.mutedForeground }]}>
-        {currentPhase ? currentPhase.label : ""}
+        {currentPhase ? currentPhase.label.toUpperCase() : ""}
       </Text>
     </Animated.View>
   );
@@ -136,7 +149,14 @@ function BreathingGuide({
 const breathStyles = StyleSheet.create({
   container: {
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 36,
+    gap: 10,
+  },
+  patternLabel: {
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 2,
+    textAlign: "center",
   },
   circleWrap: {
     width: 72,
@@ -151,7 +171,6 @@ const breathStyles = StyleSheet.create({
     borderWidth: 1.5,
   },
   phaseLabel: {
-    marginTop: 10,
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
     letterSpacing: 2.5,
@@ -167,29 +186,30 @@ export default function ReflectionScreen() {
   const soundKey: CompletionSound = settings?.completionSound ?? "chime";
   const player = useAudioPlayer(soundSources[soundKey]);
 
-  const totalSeconds = settings?.reflectionDuration ?? 60;
   const breathingType: BreathingType = settings?.breathingType ?? "none";
   const natureSoundKey: NatureSound = settings?.natureSound ?? "none";
 
-  const [timeLeft, setTimeLeft] = useState(totalSeconds);
+  const [totalSeconds, setTotalSeconds] = useState<number>(settings?.reflectionDuration ?? 60);
+  const [timeLeft, setTimeLeft] = useState<number>(settings?.reflectionDuration ?? 60);
   const [isComplete, setIsComplete] = useState(false);
   const [started, setStarted] = useState(false);
+  const startedRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const natureSoundRef = useRef<Audio.Sound | null>(null);
-  const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (!initializedRef.current && settings?.reflectionDuration) {
-      initializedRef.current = true;
-      setTimeLeft(settings.reflectionDuration);
+    const dur = settings?.reflectionDuration ?? 60;
+    if (!startedRef.current) {
+      setTotalSeconds(dur);
+      setTimeLeft(dur);
     }
   }, [settings?.reflectionDuration]);
 
   useEffect(() => {
     if (!isPremium || natureSoundKey === "none" || !started || isComplete) return;
 
-    const uri = NATURE_SOUND_URIS[natureSoundKey as Exclude<NatureSound, "none">];
-    if (!uri) return;
+    const source = NATURE_SOUNDS[natureSoundKey as Exclude<NatureSound, "none">];
+    if (!source) return;
 
     let mounted = true;
     let soundObj: Audio.Sound | null = null;
@@ -198,7 +218,7 @@ export default function ReflectionScreen() {
       try {
         await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
         const { sound } = await Audio.Sound.createAsync(
-          { uri },
+          source,
           { shouldPlay: true, isLooping: true, volume: 0.3 }
         );
         if (!mounted) {
@@ -257,6 +277,7 @@ export default function ReflectionScreen() {
   }, [started, handleComplete]);
 
   function startTimer() {
+    startedRef.current = true;
     setStarted(true);
   }
 
