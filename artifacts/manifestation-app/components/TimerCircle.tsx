@@ -11,6 +11,9 @@ interface TimerCircleProps {
   totalTime: number;
   started: boolean;
   size?: number;
+  breathScale?: Animated.Value;
+  phaseLabel?: string;
+  patternLabel?: string;
 }
 
 export function TimerCircle({
@@ -18,14 +21,15 @@ export function TimerCircle({
   totalTime,
   started,
   size = 240,
+  breathScale,
+  phaseLabel,
+  patternLabel,
 }: TimerCircleProps) {
   const colors = useColors();
 
   const radius = (size - 20) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  // Single continuous sweep — one animation over the full duration.
-  // useNativeDriver: false is required for SVG strokeDashoffset.
   const offsetAnim = useRef(new Animated.Value(0)).current;
   const sweepRef = useRef<Animated.CompositeAnimation | null>(null);
   const hasStarted = useRef(false);
@@ -49,21 +53,21 @@ export function TimerCircle({
     }
   }, [started, totalTime, circumference, offsetAnim]);
 
-  // Slow breathing pulse — native driver so it runs on the UI thread
-  // independently of the SVG animation.
+  // Gentle idle pulse — only used when no breathing pattern is driving the ring.
   const pulseAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
+    if (breathScale) return; // driven externally
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.055,
-          duration: 3000,
+          toValue: 1.04,
+          duration: 3500,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 3000,
+          duration: 3500,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
@@ -71,17 +75,21 @@ export function TimerCircle({
     );
     pulse.start();
     return () => pulse.stop();
-  }, [pulseAnim]);
+  }, [pulseAnim, breathScale]);
+
+  // Use externally-driven breath scale if provided, else idle pulse.
+  const ringScale = breathScale ?? pulseAnim;
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const timeDisplay = `${minutes}:${seconds.toString().padStart(2, "0")}`;
 
+  const innerLabel = phaseLabel ? phaseLabel.toUpperCase() : "breathe";
+
   return (
     <View style={{ width: size, height: size }}>
-      {/* Pulse wrapper — native driver, isolated from the SVG layer */}
       <Animated.View
-        style={[StyleSheet.absoluteFill, { transform: [{ scale: pulseAnim }] }]}
+        style={[StyleSheet.absoluteFill, { transform: [{ scale: ringScale }] }]}
       >
         <Svg width={size} height={size}>
           <Circle
@@ -92,7 +100,6 @@ export function TimerCircle({
             strokeWidth={4}
             fill="transparent"
           />
-          {/* Horizontal flip makes the ring drain clockwise */}
           <G transform={`translate(${size}, 0) scale(-1, 1)`}>
             <AnimatedCircle
               cx={size / 2}
@@ -128,10 +135,18 @@ export function TimerCircle({
             {timeDisplay}
           </Text>
           <Text style={[styles.breatheText, { color: colors.mutedForeground }]}>
-            breathe
+            {innerLabel}
           </Text>
         </View>
       </View>
+
+      {patternLabel ? (
+        <View style={styles.patternRow}>
+          <Text style={[styles.patternText, { color: colors.mutedForeground + "77" }]}>
+            {patternLabel}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -160,5 +175,18 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     letterSpacing: 4,
     textTransform: "uppercase",
+  },
+  patternRow: {
+    position: "absolute",
+    bottom: -28,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  patternText: {
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 2,
+    textAlign: "center",
   },
 });

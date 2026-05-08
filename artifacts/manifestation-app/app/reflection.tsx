@@ -33,27 +33,30 @@ const NATURE_SOUNDS: Record<Exclude<NatureSound, "none">, number> = {
   wind:   require("@/assets/sounds/wind.wav"),
 };
 
+const TICK_SOUND = require("@/assets/sounds/bell.wav");
+
 interface BreathPhase {
   label: string;
   duration: number;
   targetScale: number;
 }
 
+// Scale values tuned for the outer TimerCircle ring (240px)
 const BREATHING_PATTERNS: Record<Exclude<BreathingType, "none">, BreathPhase[]> = {
   "4-4-4-4": [
-    { label: "Inhale",  duration: 4, targetScale: 1.28 },
-    { label: "Hold",    duration: 4, targetScale: 1.28 },
-    { label: "Exhale",  duration: 4, targetScale: 0.72 },
-    { label: "Hold",    duration: 4, targetScale: 0.72 },
+    { label: "Inhale",  duration: 4, targetScale: 1.07 },
+    { label: "Hold",    duration: 4, targetScale: 1.07 },
+    { label: "Exhale",  duration: 4, targetScale: 0.93 },
+    { label: "Hold",    duration: 4, targetScale: 0.93 },
   ],
   "4-7-8": [
-    { label: "Inhale",  duration: 4, targetScale: 1.28 },
-    { label: "Hold",    duration: 7, targetScale: 1.28 },
-    { label: "Exhale",  duration: 8, targetScale: 0.72 },
+    { label: "Inhale",  duration: 4, targetScale: 1.07 },
+    { label: "Hold",    duration: 7, targetScale: 1.07 },
+    { label: "Exhale",  duration: 8, targetScale: 0.93 },
   ],
   calm: [
-    { label: "Inhale",  duration: 4, targetScale: 1.28 },
-    { label: "Exhale",  duration: 6, targetScale: 0.72 },
+    { label: "Inhale",  duration: 4, targetScale: 1.07 },
+    { label: "Exhale",  duration: 6, targetScale: 0.93 },
   ],
 };
 
@@ -62,120 +65,6 @@ const PATTERN_LABELS: Record<Exclude<BreathingType, "none">, string> = {
   "4-7-8":   "4 · 7 · 8",
   calm:      "Calm  4 · 6",
 };
-
-function BreathingGuide({
-  breathingType,
-  active,
-}: {
-  breathingType: Exclude<BreathingType, "none">;
-  active: boolean;
-}) {
-  const colors = useColors();
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const [phaseIndex, setPhaseIndex] = useState(0);
-  const phaseIndexRef = useRef(0);
-  const cancelledRef = useRef(false);
-
-  const phases = BREATHING_PATTERNS[breathingType];
-
-  useEffect(() => {
-    cancelledRef.current = false;
-    Animated.timing(opacityAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
-
-    function runPhase() {
-      if (cancelledRef.current) return;
-      const idx = phaseIndexRef.current;
-      const phase = phases[idx];
-      if (!phase) return;
-
-      if (Platform.OS !== "web") {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      }
-
-      Animated.timing(scaleAnim, {
-        toValue: phase.targetScale,
-        duration: phase.duration * 1000,
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (!finished || cancelledRef.current) return;
-        const next = (idx + 1) % phases.length;
-        phaseIndexRef.current = next;
-        setPhaseIndex(next);
-        runPhase();
-      });
-    }
-
-    runPhase();
-
-    return () => {
-      cancelledRef.current = true;
-      scaleAnim.stopAnimation();
-    };
-  }, [active, breathingType]);
-
-  if (!active) return null;
-
-  const currentPhase = phases[phaseIndex];
-
-  return (
-    <Animated.View style={[breathStyles.container, { opacity: opacityAnim }]}>
-      <Text style={[breathStyles.patternLabel, { color: colors.mutedForeground + "88" }]}>
-        {PATTERN_LABELS[breathingType]}
-      </Text>
-      <View style={breathStyles.circleWrap}>
-        <Animated.View
-          style={[
-            breathStyles.circle,
-            {
-              borderColor: colors.primary + "60",
-              backgroundColor: colors.primary + "0C",
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-        />
-      </View>
-      <Text style={[breathStyles.phaseLabel, { color: colors.mutedForeground }]}>
-        {currentPhase ? currentPhase.label.toUpperCase() : ""}
-      </Text>
-    </Animated.View>
-  );
-}
-
-const breathStyles = StyleSheet.create({
-  container: {
-    alignItems: "center",
-    marginTop: 36,
-    gap: 10,
-  },
-  patternLabel: {
-    fontSize: 10,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 2,
-    textAlign: "center",
-  },
-  circleWrap: {
-    width: 72,
-    height: 72,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  circle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 1.5,
-  },
-  phaseLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 2.5,
-  },
-});
 
 export default function ReflectionScreen() {
   const colors = useColors();
@@ -197,6 +86,33 @@ export default function ReflectionScreen() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const natureSoundRef = useRef<Audio.Sound | null>(null);
 
+  // Breathing animation — drives the outer ring of TimerCircle
+  const breathScaleAnim = useRef(new Animated.Value(1)).current;
+  const [currentPhaseLabel, setCurrentPhaseLabel] = useState("");
+  const breathCancelledRef = useRef(false);
+  const breathPhaseIndexRef = useRef(0);
+
+  // Tick sound — preloaded once
+  const tickSoundRef = useRef<Audio.Sound | null>(null);
+  useEffect(() => {
+    let s: Audio.Sound;
+    Audio.Sound.createAsync(TICK_SOUND, { volume: 0.2 })
+      .then(({ sound }) => { s = sound; tickSoundRef.current = sound; })
+      .catch(() => {});
+    return () => { s?.unloadAsync().catch(() => {}); };
+  }, []);
+
+  async function playTick() {
+    try {
+      const s = tickSoundRef.current;
+      if (s) {
+        await s.setPositionAsync(0);
+        await s.playAsync();
+      }
+    } catch {}
+  }
+
+  // Sync duration from settings before timer starts
   useEffect(() => {
     const dur = settings?.reflectionDuration ?? 60;
     if (!startedRef.current) {
@@ -205,6 +121,7 @@ export default function ReflectionScreen() {
     }
   }, [settings?.reflectionDuration]);
 
+  // Nature sound — seamless loop via position monitoring
   useEffect(() => {
     if (!isPremium || natureSoundKey === "none" || !started || isComplete) return;
 
@@ -213,23 +130,37 @@ export default function ReflectionScreen() {
 
     let mounted = true;
     let soundObj: Audio.Sound | null = null;
+    let seeking = false;
 
     async function loadNatureSound() {
       try {
         await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
         const { sound } = await Audio.Sound.createAsync(
           source,
-          { shouldPlay: true, isLooping: true, volume: 0.3 }
+          { shouldPlay: true, isLooping: false, volume: 0.3 }
         );
-        if (!mounted) {
-          await sound.unloadAsync();
-          return;
-        }
+        if (!mounted) { await sound.unloadAsync(); return; }
         soundObj = sound;
         natureSoundRef.current = sound;
-      } catch {
-        // Sound unavailable — silently ignore
-      }
+
+        // Seamless loop: seek to 0 when within 200 ms of the end
+        sound.setOnPlaybackStatusUpdate(async (status) => {
+          if (!mounted || !status.isLoaded || seeking) return;
+          const dur = (status as any).durationMillis as number | undefined ?? 0;
+          const pos = (status as any).positionMillis as number | undefined ?? 0;
+          if (dur > 0 && pos >= dur - 200) {
+            seeking = true;
+            try { await sound.setPositionAsync(0); } catch {}
+            seeking = false;
+          }
+          if ((status as any).didJustFinish) {
+            try {
+              await sound.setPositionAsync(0);
+              await sound.playAsync();
+            } catch {}
+          }
+        });
+      } catch {}
     }
 
     loadNatureSound();
@@ -240,6 +171,53 @@ export default function ReflectionScreen() {
       natureSoundRef.current = null;
     };
   }, [isPremium, natureSoundKey, started, isComplete]);
+
+  // Breathing state machine — drives outer ring + phase label + tick
+  const showBreathing = isPremium && breathingType !== "none";
+
+  useEffect(() => {
+    if (!showBreathing || !started || isComplete) {
+      breathCancelledRef.current = true;
+      breathScaleAnim.stopAnimation();
+      breathScaleAnim.setValue(1);
+      setCurrentPhaseLabel("");
+      return;
+    }
+
+    breathCancelledRef.current = false;
+    breathPhaseIndexRef.current = 0;
+    const phases = BREATHING_PATTERNS[breathingType as Exclude<BreathingType, "none">];
+
+    function runPhase() {
+      if (breathCancelledRef.current) return;
+      const idx = breathPhaseIndexRef.current;
+      const phase = phases[idx];
+      if (!phase) return;
+
+      setCurrentPhaseLabel(phase.label);
+      playTick();
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      }
+
+      Animated.timing(breathScaleAnim, {
+        toValue: phase.targetScale,
+        duration: phase.duration * 1000,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (!finished || breathCancelledRef.current) return;
+        breathPhaseIndexRef.current = (idx + 1) % phases.length;
+        runPhase();
+      });
+    }
+
+    runPhase();
+
+    return () => {
+      breathCancelledRef.current = true;
+      breathScaleAnim.stopAnimation();
+    };
+  }, [showBreathing, started, isComplete, breathingType]);
 
   const handleComplete = useCallback(async () => {
     setIsComplete(true);
@@ -303,8 +281,6 @@ export default function ReflectionScreen() {
   };
   const message = sessionMessages[session ?? ""] ?? "Breathe and be present.";
 
-  const showBreathing = isPremium && breathingType !== "none";
-
   return (
     <GradientBackground colors={["#06030F", "#120A2B", "#0B0B24"]}>
       <View
@@ -334,13 +310,10 @@ export default function ReflectionScreen() {
             totalTime={totalSeconds}
             started={started}
             size={240}
+            breathScale={showBreathing && started && !isComplete ? breathScaleAnim : undefined}
+            phaseLabel={showBreathing && started && !isComplete ? currentPhaseLabel : undefined}
+            patternLabel={showBreathing ? PATTERN_LABELS[breathingType as Exclude<BreathingType, "none">] : undefined}
           />
-          {showBreathing && (
-            <BreathingGuide
-              breathingType={breathingType as Exclude<BreathingType, "none">}
-              active={started && !isComplete}
-            />
-          )}
         </View>
 
         <View style={styles.footer}>
