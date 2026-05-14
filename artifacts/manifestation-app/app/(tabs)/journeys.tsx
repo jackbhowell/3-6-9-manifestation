@@ -1,8 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
   Alert,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -15,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GradientBackground } from "@/components/GradientBackground";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { ArchivedJourney } from "@/utils/storage";
+import { ArchivedJourney, ManifestItem } from "@/utils/storage";
 
 function completionPercent(progress: ArchivedJourney["progress"], cycleLength: number): number {
   const totalSessions = cycleLength * 3;
@@ -54,6 +55,136 @@ function todayCompletionPercent(
   return Math.round((done / 3) * 100);
 }
 
+type PickerTarget = "current" | ArchivedJourney;
+
+function ManifestPickerModal({
+  visible,
+  items,
+  onSelect,
+  onClose,
+  colors,
+  insets,
+}: {
+  visible: boolean;
+  items: ManifestItem[];
+  onSelect: (item: ManifestItem) => void;
+  onClose: () => void;
+  colors: ReturnType<typeof useColors>;
+  insets: { bottom: number };
+}) {
+  const pending = items.filter((i) => !i.manifested);
+  const manifested = items.filter((i) => i.manifested);
+  const ordered = [...pending, ...manifested];
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable
+          style={[
+            styles.modalSheet,
+            {
+              backgroundColor: colors.card,
+              paddingBottom: insets.bottom + 16,
+            },
+          ]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+          <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+            Assign Focus Manifestation
+          </Text>
+          <Text style={[styles.modalSubtitle, { color: colors.mutedForeground }]}>
+            Pick an item from your manifest list to focus this journey on
+          </Text>
+
+          {ordered.length === 0 ? (
+            <View style={styles.modalEmpty}>
+              <Text style={[styles.modalEmptyText, { color: colors.mutedForeground }]}>
+                Your manifest list is empty. Add some items first.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView
+              style={styles.modalList}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {pending.length > 0 && manifested.length > 0 && (
+                <Text style={[styles.modalSectionLabel, { color: colors.mutedForeground }]}>
+                  ACTIVE
+                </Text>
+              )}
+              {pending.map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => onSelect(item)}
+                  style={({ pressed }) => [
+                    styles.modalItem,
+                    {
+                      backgroundColor: pressed ? colors.primary + "18" : colors.secondary,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <View style={[styles.modalItemDot, { backgroundColor: colors.primary }]} />
+                  <Text style={[styles.modalItemText, { color: colors.foreground }]}>
+                    {item.text}
+                  </Text>
+                  <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                </Pressable>
+              ))}
+              {manifested.length > 0 && (
+                <>
+                  {pending.length > 0 && (
+                    <Text style={[styles.modalSectionLabel, { color: colors.mutedForeground, marginTop: 12 }]}>
+                      MANIFESTED
+                    </Text>
+                  )}
+                  {manifested.map((item) => (
+                    <Pressable
+                      key={item.id}
+                      onPress={() => onSelect(item)}
+                      style={({ pressed }) => [
+                        styles.modalItem,
+                        {
+                          backgroundColor: pressed ? colors.primary + "18" : colors.secondary,
+                          borderColor: colors.border,
+                          opacity: 0.55,
+                        },
+                      ]}
+                    >
+                      <Feather name="check-circle" size={14} color={colors.success ?? colors.primary} />
+                      <Text style={[styles.modalItemText, { color: colors.foreground, flex: 1 }]}>
+                        {item.text}
+                      </Text>
+                      <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                    </Pressable>
+                  ))}
+                </>
+              )}
+              <View style={{ height: 8 }} />
+            </ScrollView>
+          )}
+
+          <Pressable
+            onPress={onClose}
+            style={[styles.modalCancel, { borderColor: colors.border }]}
+          >
+            <Text style={[styles.modalCancelText, { color: colors.mutedForeground }]}>
+              Cancel
+            </Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 export default function JourneysScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -64,9 +195,15 @@ export default function JourneysScreen() {
     todayProgress,
     allProgress,
     archivedJourneys,
+    manifestItems,
     deleteArchivedJourney,
     deleteCurrentJourney,
+    updateSettings,
+    updateArchivedJourneyIntention,
   } = useApp();
+
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
 
   const journeyNumber = archivedJourneys.length + 1;
   const journeyName = settings?.journeyName || `Journey ${journeyNumber}`;
@@ -100,6 +237,23 @@ export default function JourneysScreen() {
     activeCompletion === 100;
 
   const sortedArchived = [...archivedJourneys].reverse();
+
+  function openPicker(target: PickerTarget) {
+    setPickerTarget(target);
+    setPickerVisible(true);
+  }
+
+  async function handlePickItem(item: ManifestItem) {
+    setPickerVisible(false);
+    if (!pickerTarget) return;
+    if (pickerTarget === "current") {
+      if (!settings) return;
+      await updateSettings({ ...settings, intention: item.text });
+    } else {
+      await updateArchivedJourneyIntention(pickerTarget.id, item.text);
+    }
+    setPickerTarget(null);
+  }
 
   function confirmDelete(journey: ArchivedJourney) {
     if (Platform.OS === "web") {
@@ -212,7 +366,20 @@ export default function JourneysScreen() {
                     >
                       {settings.intention}
                     </Text>
-                  ) : null}
+                  ) : (
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        openPicker("current");
+                      }}
+                      style={[styles.assignBtn, { borderColor: colors.primary + "55", backgroundColor: colors.primary + "12" }]}
+                    >
+                      <Feather name="target" size={12} color={colors.primary} />
+                      <Text style={[styles.assignBtnText, { color: colors.primary }]}>
+                        Assign focus manifestation
+                      </Text>
+                    </Pressable>
+                  )}
                 </View>
                 <View style={[styles.practiceBtn, { backgroundColor: colors.primary }]}>
                   <Feather name="arrow-right" size={18} color={colors.primaryForeground} />
@@ -326,7 +493,20 @@ export default function JourneysScreen() {
                       >
                         "{journey.intention}"
                       </Text>
-                    ) : null}
+                    ) : (
+                      <Pressable
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          openPicker(journey);
+                        }}
+                        style={[styles.assignBtn, { borderColor: colors.primary + "55", backgroundColor: colors.primary + "12" }]}
+                      >
+                        <Feather name="target" size={12} color={colors.primary} />
+                        <Text style={[styles.assignBtnText, { color: colors.primary }]}>
+                          Assign focus manifestation
+                        </Text>
+                      </Pressable>
+                    )}
                     <Pressable
                       onPress={(e) => {
                         e.stopPropagation();
@@ -359,6 +539,18 @@ export default function JourneysScreen() {
           </View>
         )}
       </ScrollView>
+
+      <ManifestPickerModal
+        visible={pickerVisible}
+        items={manifestItems}
+        onSelect={handlePickItem}
+        onClose={() => {
+          setPickerVisible(false);
+          setPickerTarget(null);
+        }}
+        colors={colors}
+        insets={insets}
+      />
     </GradientBackground>
   );
 }
@@ -457,6 +649,21 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     fontStyle: "italic",
     lineHeight: 18,
+  },
+  assignBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginTop: 2,
+  },
+  assignBtnText: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
   },
   practiceBtn: {
     width: 44,
@@ -610,5 +817,86 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: "center",
     fontStyle: "italic",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+    paddingHorizontal: 20,
+    maxHeight: "75%",
+  },
+  modalHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  modalSectionLabel: {
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 2,
+    marginBottom: 6,
+  },
+  modalList: {
+    maxHeight: 340,
+  },
+  modalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    marginBottom: 8,
+  },
+  modalItemDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  modalItemText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 20,
+  },
+  modalEmpty: {
+    paddingVertical: 32,
+    alignItems: "center",
+  },
+  modalEmptyText: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  modalCancel: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontFamily: "Inter_500Medium",
   },
 });

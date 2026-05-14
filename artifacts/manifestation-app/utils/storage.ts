@@ -203,6 +203,12 @@ export async function deleteArchivedJourney(id: string): Promise<void> {
   await AsyncStorage.setItem(KEYS.JOURNEYS, JSON.stringify(updated));
 }
 
+export async function saveArchivedJourneyIntention(id: string, intention: string): Promise<void> {
+  const existing = await loadArchivedJourneys();
+  const updated = existing.map((j) => (j.id === id ? { ...j, intention } : j));
+  await AsyncStorage.setItem(KEYS.JOURNEYS, JSON.stringify(updated));
+}
+
 export async function deleteCurrentJourney(): Promise<void> {
   await AsyncStorage.multiRemove([KEYS.SETTINGS, KEYS.PROGRESS, KEYS.ONBOARDED]);
 }

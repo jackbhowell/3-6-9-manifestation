@@ -19,6 +19,7 @@ import {
   calculateStreak,
   deleteArchivedJourney as storageDeleteArchivedJourney,
   deleteCurrentJourney as storageDeleteCurrentJourney,
+  saveArchivedJourneyIntention,
   getCurrentDay,
   loadAllProgress,
   loadArchivedJourneys,
@@ -63,6 +64,7 @@ interface AppContextType {
   toggleManifestItem: (id: string) => Promise<void>;
   deleteManifestItem: (id: string) => Promise<void>;
   deleteArchivedJourney: (id: string) => Promise<void>;
+  updateArchivedJourneyIntention: (id: string, intention: string) => Promise<void>;
   deleteCurrentJourney: () => Promise<void>;
   startNewJourney: (s: UserSettings) => Promise<void>;
   unlockPremium: () => Promise<void>;
@@ -304,6 +306,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setArchivedJourneys(journeys);
   }, []);
 
+  const updateArchivedJourneyIntention = useCallback(async (id: string, intention: string) => {
+    await saveArchivedJourneyIntention(id, intention);
+    const journeys = await loadArchivedJourneys();
+    setArchivedJourneys(journeys);
+  }, []);
+
   const deleteCurrentJourney = useCallback(async () => {
     await storageDeleteCurrentJourney();
     setSettings(null);
@@ -416,6 +424,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleManifestItem,
         deleteManifestItem,
         deleteArchivedJourney,
+        updateArchivedJourneyIntention,
         deleteCurrentJourney,
         startNewJourney,
         unlockPremium,
