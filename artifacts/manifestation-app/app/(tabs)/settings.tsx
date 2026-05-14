@@ -63,6 +63,7 @@ const THEME_ORDER: ThemeName[] = [
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = Platform.OS === "web" ? 84 : 49 + insets.bottom;
   const {
     settings,
     updateSettings,
@@ -719,7 +720,8 @@ export default function SettingsScreen() {
           style={[
             styles.floatBar,
             {
-              paddingBottom: insets.bottom + (Platform.OS === "web" ? 16 : 12),
+              bottom: tabBarHeight,
+              paddingBottom: 12,
               backgroundColor: colors.card,
               borderTopColor: colors.border,
             },
