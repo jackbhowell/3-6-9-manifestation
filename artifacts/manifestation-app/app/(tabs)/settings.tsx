@@ -41,12 +41,10 @@ const soundSources: Record<CompletionSound, number> = {
   "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
 };
 
-const NATURE_SOUNDS: Record<Exclude<NatureSound, "none">, number> = {
-  rain:          require("@/assets/sounds/rain.wav"),
-  ocean:         require("@/assets/sounds/ocean.wav"),
-  forest:        require("@/assets/sounds/forest.wav"),
-  wind:          require("@/assets/sounds/wind.wav"),
-  "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
+const NATURE_SOUNDS: Partial<Record<Exclude<NatureSound, "none">, number>> = {
+  rain:   require("@/assets/sounds/rain.wav"),
+  ocean:  require("@/assets/sounds/ocean.wav"),
+  forest: require("@/assets/sounds/forest.wav"),
 };
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -121,6 +119,9 @@ export default function SettingsScreen() {
       setEvening(settings.notificationTimes.evening);
       setNotifsEnabled(settings.notificationsEnabled !== false);
       setCompletionSound(settings.completionSound ?? "chime");
+      setNatureSound(settings.natureSound ?? "none");
+      setBreathingType(settings.breathingType ?? "none");
+      setReflectionDuration(settings.reflectionDuration ?? 60);
     }
   }, [settings]);
 
@@ -142,9 +143,11 @@ export default function SettingsScreen() {
         await natureSoundRef.current.unloadAsync();
         natureSoundRef.current = null;
       }
+      const source = NATURE_SOUNDS[opt];
+      if (!source) return;
       setNaturePreviewing(opt);
       const { sound } = await Audio.Sound.createAsync(
-        NATURE_SOUNDS[opt],
+        source,
         { shouldPlay: true, volume: 0.5 }
       );
       natureSoundRef.current = sound;
@@ -199,17 +202,29 @@ export default function SettingsScreen() {
     }
   }
 
+  const hasChanges = settings
+    ? morning !== settings.notificationTimes.morning ||
+      afternoon !== settings.notificationTimes.afternoon ||
+      evening !== settings.notificationTimes.evening ||
+      notifsEnabled !== (settings.notificationsEnabled !== false) ||
+      completionSound !== (settings.completionSound ?? "chime") ||
+      natureSound !== (settings.natureSound ?? "none") ||
+      breathingType !== (settings.breathingType ?? "none") ||
+      reflectionDuration !== (settings.reflectionDuration ?? 60)
+    : false;
+
   if (!settings) return null;
 
   return (
     <GradientBackground>
+      <View style={{ flex: 1 }}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={[
           styles.scroll,
           {
             paddingTop: insets.top + (Platform.OS === "web" ? 67 : 20),
-            paddingBottom: insets.bottom + (Platform.OS === "web" ? 120 : 110),
+            paddingBottom: insets.bottom + (Platform.OS === "web" ? 120 : 110) + (hasChanges ? 70 : 0),
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -366,8 +381,8 @@ export default function SettingsScreen() {
             NATURE SOUND
           </Text>
           <View style={styles.chipRow}>
-            {(["none", "rain", "ocean", "forest", "wind", "singing-bowl"] as NatureSound[]).map((opt) => {
-              const labels: Record<NatureSound, string> = { none: "Off", rain: "Rain", ocean: "Ocean", forest: "Forest", wind: "Wind", "singing-bowl": "Bowl" };
+            {(["none", "rain", "ocean", "forest"] as NatureSound[]).map((opt) => {
+              const labels: Record<string, string> = { none: "Off", rain: "Rain", ocean: "Ocean", forest: "Forest" };
               const locked = !isPremium && opt !== "none";
               const isPreviewing = naturePreviewing === opt;
               return (
@@ -698,6 +713,33 @@ export default function SettingsScreen() {
         </Pressable>
 
       </ScrollView>
+
+      {hasChanges && (
+        <View
+          style={[
+            styles.floatBar,
+            {
+              paddingBottom: insets.bottom + (Platform.OS === "web" ? 16 : 12),
+              backgroundColor: colors.card,
+              borderTopColor: colors.border,
+            },
+          ]}
+        >
+          <Pressable
+            onPress={handleSave}
+            disabled={saving}
+            style={[
+              styles.saveBtn,
+              { backgroundColor: saved ? colors.success : colors.primary },
+            ]}
+          >
+            <Text style={[styles.saveBtnText, { color: colors.primaryForeground }]}>
+              {saved ? "Saved ✓" : saving ? "Saving..." : "Save Changes"}
+            </Text>
+          </Pressable>
+        </View>
+      )}
+      </View>
     </GradientBackground>
   );
 }
@@ -878,6 +920,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  floatBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   saveBtn: {
     borderRadius: 14,

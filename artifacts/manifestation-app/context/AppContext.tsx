@@ -345,7 +345,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const startNewJourney = useCallback(
     async (s: UserSettings) => {
-      const withDefaults: UserSettings = { selectedTheme: "indigo", ...s };
+      const withDefaults: UserSettings = {
+        selectedTheme: settings?.selectedTheme ?? "indigo",
+        completionSound: settings?.completionSound,
+        natureSound: settings?.natureSound,
+        breathingType: settings?.breathingType,
+        reflectionDuration: settings?.reflectionDuration,
+        notificationsEnabled: settings?.notificationsEnabled,
+        ...s,
+      };
       if (settings && Object.keys(allProgress).length > 0) {
         await archiveCurrentJourney(settings, allProgress);
       }

@@ -26,12 +26,10 @@ const soundSources: Record<CompletionSound, number> = {
   "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
 };
 
-const NATURE_SOUNDS: Record<Exclude<NatureSound, "none">, number> = {
-  rain:          require("@/assets/sounds/rain.wav"),
-  ocean:         require("@/assets/sounds/ocean.wav"),
-  forest:        require("@/assets/sounds/forest.wav"),
-  wind:          require("@/assets/sounds/wind.wav"),
-  "singing-bowl": require("@/assets/sounds/singing-bowl.wav"),
+const NATURE_SOUNDS: Partial<Record<Exclude<NatureSound, "none">, number>> = {
+  rain:   require("@/assets/sounds/rain.wav"),
+  ocean:  require("@/assets/sounds/ocean.wav"),
+  forest: require("@/assets/sounds/forest.wav"),
 };
 
 const TICK_SOUND = require("@/assets/sounds/ting.wav");
@@ -97,7 +95,7 @@ export default function ReflectionScreen() {
   const tickSoundRef = useRef<Audio.Sound | null>(null);
   useEffect(() => {
     let s: Audio.Sound;
-    Audio.Sound.createAsync(TICK_SOUND, { volume: 0.25 })
+    Audio.Sound.createAsync(TICK_SOUND, { volume: 0.275 })
       .then(({ sound }) => { s = sound; tickSoundRef.current = sound; })
       .catch(() => {});
     return () => { s?.unloadAsync().catch(() => {}); };
@@ -131,29 +129,21 @@ export default function ReflectionScreen() {
 
     let mounted = true;
     let soundObj: Audio.Sound | null = null;
-    let seeking = false;
 
     async function loadNatureSound() {
       try {
         await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
         const { sound } = await Audio.Sound.createAsync(
-          source,
+          source as number,
           { shouldPlay: true, isLooping: false, volume: 0.3 }
         );
         if (!mounted) { await sound.unloadAsync(); return; }
         soundObj = sound;
         natureSoundRef.current = sound;
 
-        // Seamless loop: seek to 0 when within 200 ms of the end
+        // Loop: restart immediately when playback finishes
         sound.setOnPlaybackStatusUpdate(async (status) => {
-          if (!mounted || !status.isLoaded || seeking) return;
-          const dur = (status as any).durationMillis as number | undefined ?? 0;
-          const pos = (status as any).positionMillis as number | undefined ?? 0;
-          if (dur > 0 && pos >= dur - 200) {
-            seeking = true;
-            try { await sound.setPositionAsync(0); } catch {}
-            seeking = false;
-          }
+          if (!mounted || !status.isLoaded) return;
           if ((status as any).didJustFinish) {
             try {
               await sound.setPositionAsync(0);
