@@ -2,7 +2,7 @@
   "expo": {
     "name": "3-6-9 Manifestation Companion",
     "slug": "manifestation-app",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "manifestation-app",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.manifestation.companion",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "We send you gentle reminders for your morning, afternoon, and evening manifestation sessions.",
         "ITSAppUsesNonExemptEncryption": false
